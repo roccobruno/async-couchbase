@@ -1,15 +1,11 @@
 package org.asyncouchbase.util
 
-import com.couchbase.client.java.AsyncBucket
-import com.couchbase.client.java.document.JsonDocument
 import play.api.libs.iteratee.Concurrent.Channel
 import play.api.libs.iteratee._
-import play.api.libs.json.Json
 import rx.lang.scala.JavaConversions._
 import rx.lang.scala.{Observable, Observer, Subscription}
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 object Converters {
