@@ -19,7 +19,7 @@ class BucketSpec extends Testing {
 
   trait Setup {
 
-    val bucket = new IndexApi  {
+    val bucket = new IndexApi {
       override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
     }
 
@@ -38,7 +38,7 @@ class BucketSpec extends Testing {
     "return a document by key" in new Setup {
 
       //prepopulate db
-      await(bucket.upsert[User]("u:king_arthur", User("Arthur","kingarthur@couchbase.com",Seq("test","test2"))))
+      await(bucket.upsert[User]("u:king_arthur", User("Arthur", "kingarthur@couchbase.com", Seq("test", "test2"))))
 
       val result = await(bucket.get[User]("u:king_arthur"))
       result.isDefined shouldBe true
@@ -50,7 +50,7 @@ class BucketSpec extends Testing {
 
     "upsert a document" in new Setup {
 
-      val result = await(bucket.upsert[User]("u:rocco", User("rocco","eocco@test.com",Seq())))
+      val result = await(bucket.upsert[User]("u:rocco", User("rocco", "eocco@test.com", Seq())))
       result.isSuccess shouldBe true
 
       val readDocument = await(bucket.get[User]("u:rocco"))
@@ -62,8 +62,8 @@ class BucketSpec extends Testing {
 
     }
 
-    "return 2 documents in " in new Setup  {
-      await(bucket.upsert[User]("u:rocco1", User("rocco","eocco@test.com",Seq("test"))))
+    "return 2 documents in " in new Setup {
+      await(bucket.upsert[User]("u:rocco1", User("rocco", "eocco@test.com", Seq("test"))))
       await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
       await(bucket.createPrimaryIndex(deferBuild = false))
 
@@ -77,10 +77,10 @@ class BucketSpec extends Testing {
       await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
     }
 
-    "delete a doc by key" in new Setup  {
+    "delete a doc by key" in new Setup {
 
 
-      await(bucket.upsert[User]("u:rocco23", User("rocco","eocco@test.com",Seq("test"))))
+      await(bucket.upsert[User]("u:rocco23", User("rocco", "eocco@test.com", Seq("test"))))
 
       val rec = await(bucket.get[User]("u:rocco23"))
       rec.isDefined shouldBe true
@@ -90,6 +90,55 @@ class BucketSpec extends Testing {
 
       val recs = await(bucket.get[User]("u:rocco23"))
       recs.isDefined shouldBe false
+
+    }
+
+    "read single value from document" in new Setup {
+      private val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val value = await(bucket.getValue[String](docId, "name", classOf[String]))
+      value.get shouldBe "rocco"
+
+      await(bucket.delete[User](docId))
+
+    }
+
+    "set single value to a document" in new Setup {
+
+      private val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val res = await(bucket.setValue[String](docId, "name", "rocco2"))
+      res.isSuccess shouldBe true
+
+      val value = await(bucket.getValue[String](docId, "name", classOf[String]))
+      value.get shouldBe "rocco2"
+
+
+      await(bucket.delete[User](docId))
+
+    }
+
+    "set new key value pair to a document" in new Setup {
+      private val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val res = await(bucket.setValue[String](docId, "surname", "bruno"))
+      res.isSuccess shouldBe true
+
+      val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
+      value.get shouldBe "bruno"
+
+      await(bucket.delete[User](docId))
+    }
+
+    "return None if value not present in document" in new Setup {
+      private val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
+      value shouldBe None
 
     }
 

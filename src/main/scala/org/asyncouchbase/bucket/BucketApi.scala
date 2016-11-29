@@ -1,10 +1,11 @@
 package org.asyncouchbase.bucket
 
+import com.couchbase.client.core.logging.CouchbaseLoggerFactory
 import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.JsonObject.fromJson
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import com.couchbase.client.java.query._
-import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
+import com.couchbase.client.java.{AsyncBucket, CouchbaseAsyncBucket, PersistTo, ReplicateTo}
 import org.asyncouchbase.util.Converters._
 import org.asyncouchbase.model.{CBIndex, OpsResult}
 import play.api.libs.iteratee.Iteratee
@@ -17,7 +18,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait BucketApi {
-
+ val logger =  CouchbaseLoggerFactory.getInstance(classOf[BucketApi])
 
   def asyncBucket: AsyncBucket
 
@@ -28,7 +29,11 @@ trait BucketApi {
       _ =>
         OpsResult(isSuccess = true, "")
     } recover {
-      case ex: Throwable => OpsResult(isSuccess = false, ex.getMessage) //TODO catch the right exception and transform
+      case ex: Throwable => {
+        logger.warn(s"Error in upserting document with id= $key. Error message - ${ex.getMessage}")
+        logger.debug(s"Error of type ${ex.getCause}")
+        OpsResult(isSuccess = false, ex.getMessage)
+      }
     }
   }
 
@@ -36,7 +41,11 @@ trait BucketApi {
     toFuture(asyncBucket.remove(key)) map {
       _ => OpsResult(isSuccess = true, "")
     } recover {
-      case ex: Throwable => OpsResult(isSuccess = false, ex.getMessage)
+      case ex: Throwable => {
+        logger.warn(s"Error in deleting document with id= $key. Error message - ${ex.getMessage}")
+        logger.debug(s"Error of type ${ex.getCause}")
+        OpsResult(isSuccess = false, ex.getMessage) //TODO catch the right exception and transform
+      }
     }
   }
 
@@ -63,4 +72,27 @@ trait BucketApi {
     toFuture(asyncBucket.get(key)) map (doc => parse(doc.content().toString).asOpt[T]) recover {
       case _: Throwable => None //TODO
     }
+
+
+  def getValue[V](key: String, fieldName: String, valueType: Class[V]): Future[Option[V]] = {
+    toFuture(asyncBucket.mapGet(key,fieldName,valueType)) map {
+      value => Some(value)
+    } recover {
+      case _: Throwable => None //TODO logging
+    }
+  }
+
+  def setValue[V](key: String, fieldName: String, fieldValue: V): Future[OpsResult] = {
+
+    toFuture(asyncBucket.mapAdd(key, fieldName, fieldValue)) map {
+      _ => OpsResult(isSuccess = true, "")
+    } recover {
+      case ex: Throwable => {
+        logger.warn(s"Error in setting value in document with id= $key. Error message - ${ex.getMessage}")
+        logger.debug(s"Error of type ${ex.getCause}")
+        OpsResult(isSuccess = false, ex.getMessage)
+      }
+    }
+
+  }
 }
