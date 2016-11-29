@@ -5,7 +5,7 @@ import play.api.libs.functional.syntax._
 
 package object model {
 
-  case class OpsResult(isSuccess: Boolean, msg: String)
+  case class OpsResult(isSuccess: Boolean, msg: String = "")
 
   case class CBIndex(name: String, isPrimary: Boolean, keys: Seq[String], id: String, state: String)
   object CBIndex {

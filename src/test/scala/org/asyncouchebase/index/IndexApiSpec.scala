@@ -25,21 +25,20 @@ class IndexApiSpec  extends Testing {
 
   "A bucket with index " should {
 
-//
-//    "create a secondary index " in new Setup  {
-//
-//      val recs = await(bucketImpl.createIndex(Seq("name")))
-//      recs.isSuccess shouldBe true
-//
-//    }
+
+    "create a secondary index " in new Setup  {
+      val recs = await(bucketImpl.createIndex(Seq("name")))
+      recs.isSuccess shouldBe true
+    }
 
     "find created indexes" in new Setup {
-
       val result = await(bucketImpl.findIndexes())
-      result.size shouldBe 3
+      result.size shouldBe 2
+    }
 
-      result.foreach(r=> println(r))
-
+    "delete index" in new Setup {
+      val res = await(bucketImpl.dropIndex("def_name"))
+      res.isSuccess shouldBe true
     }
 
 
