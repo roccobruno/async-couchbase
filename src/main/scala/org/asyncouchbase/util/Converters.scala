@@ -6,9 +6,10 @@ import rx.lang.scala.JavaConversions._
 import rx.lang.scala.{Observable, Observer, Subscription}
 
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.{Future, Promise}
 import scala.util.{Failure, Success}
 
-object Converters {
+package object Converters {
 
   /*
  * Observable to Enumerator
@@ -34,43 +35,50 @@ object Converters {
     /*
      * Enumerator to Observable
      */
-    implicit def enumerator2Observable[T](enum: Enumerator[T]): Observable[T] = {
-      // creating the Observable that we return
-      Observable({ observer: Observer[T] =>
-        // keeping a way to unsubscribe from the observable
-        var cancelled = false
+  implicit def enumerator2Observable[T](enum: Enumerator[T]): Observable[T] = {
+    // creating the Observable that we return
+    Observable({ observer: Observer[T] =>
+      // keeping a way to unsubscribe from the observable
+      var cancelled = false
 
-        // enumerator input is tested with this predicate
-        // once cancelled is set to true, the enumerator will stop producing data
-        val cancellableEnum = enum through Enumeratee.breakE[T](_ => cancelled)
+      // enumerator input is tested with this predicate
+      // once cancelled is set to true, the enumerator will stop producing data
+      val cancellableEnum = enum through Enumeratee.breakE[T](_ => cancelled)
 
-        // applying iteratee on producer, passing data to the observable
-        cancellableEnum (
-          Iteratee.foreach(observer.onNext(_))
-        ).onComplete { // passing completion or error to the observable
-          case Success(_) => observer.onCompleted()
-          case Failure(e) => observer.onError(e)
-        }
+      // applying iteratee on producer, passing data to the observable
+      cancellableEnum (
+        Iteratee.foreach(observer.onNext(_))
+      ).onComplete { // passing completion or error to the observable
+        case Success(_) => observer.onCompleted()
+        case Failure(e) => observer.onError(e)
+      }
 
-        // unsubscription will change the var to stop the enumerator above via the breakE function
-        new Subscription { override def unsubscribe() = { cancelled = true } }
-      })
-    }
+      // unsubscription will change the var to stop the enumerator above via the breakE function
+      new Subscription { override def unsubscribe() = { cancelled = true } }
+    })
+  }
 
 
   /*
    Observable to Future
    */
-  //  implicit def toFuture[T](observable: rx.Observable[T]) = toScalaObservable(observable).toBlocking.toFuture
-  implicit def toFuture[T](observable: rx.Observable[T]) = {
+  implicit def toFuture[T](observable: rx.Observable[T]): Future[T] = {
 
-   observable2Enumerator(observable) run
-      Iteratee.fold(List.empty[T]) { (l, e) => e :: l } map {
-      case head :: tail => head //TODO will it always return a result??
-      case _ => throw new RuntimeException("error in executing observable")
-    }
+    val promise = Promise[T]
+    observable.subscribe( new Observer[T] {
+      override def onNext(value: T): Unit = promise.success(value)
 
+      override def onError(error: Throwable): Unit = promise.failure(error)
+
+      override def onCompleted(): Unit =
+        if(!promise.isCompleted) promise.failure(new RuntimeException("No results returned from Observable"))
+    } )
+    promise.future
   }
+
+
+
+
 
 
 }
