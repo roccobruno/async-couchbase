@@ -66,7 +66,7 @@ object Converters {
 
    observable2Enumerator(observable) run
       Iteratee.fold(List.empty[T]) { (l, e) => e :: l } map {
-      case head :: tail => head
+      case head :: tail => head //TODO will it always return a result??
     }
 
   }

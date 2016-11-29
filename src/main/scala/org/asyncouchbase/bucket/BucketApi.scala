@@ -57,17 +57,8 @@ trait BucketApi {
   }
 
 
-  def get[T](key: String)(implicit r: Reads[T]): Future[Option[T]] = {
-
-    val res: Future[List[T]] = observable2Enumerator(asyncBucket.get(key)) run Iteratee.fold(List.empty[JsonDocument]) { (l, e) => e :: l } map {
-      _.reverse
-    } map {
-      s => s map (ss => r.reads(Json.parse(ss.content().toString)).get)
+  def get[T](key: String)(implicit r: Reads[T]): Future[Option[T]] =
+    toFuture(asyncBucket.get(key)) map (doc => Json.parse(doc.content().toString).asOpt[T]) recover {
+      case _: Throwable => None //TODO
     }
-
-    res map {
-      case head :: tail => Some(head)
-      case Nil => None
-    }
-  }
 }
