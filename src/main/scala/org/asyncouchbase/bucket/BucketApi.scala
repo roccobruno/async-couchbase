@@ -4,10 +4,10 @@ import com.couchbase.client.java.document.JsonDocument
 import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import com.couchbase.client.java.query._
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
-import org.asyncouchbase.Converters.{observable2Enumerator, toFuture}
+import org.asyncouchbase.util.Converters.{observable2Enumerator, toFuture}
 import org.asyncouchbase.model.{CBIndex, OpsResult}
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.{Json, Reads, Writes}
+import play.api.libs.json.{JsResult, Json, Reads, Writes}
 import rx.lang.scala.JavaConversions.toScalaObservable
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -16,17 +16,11 @@ import scala.concurrent.Future
 trait BucketApi {
 
 
-
   def asyncBucket: AsyncBucket
 
 
 
-  def get[T](key: String)(implicit r: Reads[T]): Future[Option[T]] =
-    toFuture(asyncBucket.get(key)) map (doc => Json.parse(doc.content().toString).asOpt[T]) recover {
-      case _: Throwable => None //TODO
-    }
-
-  def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.NONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
+  def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.MASTER, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
     val ent = JsonObject.fromJson(r.writes(entity).toString())
     toFuture(asyncBucket.upsert(JsonDocument.create(key, ent))) map {
       _ =>
@@ -63,11 +57,17 @@ trait BucketApi {
   }
 
 
+  def get[T](key: String)(implicit r: Reads[T]): Future[Option[T]] = {
 
+    val res: Future[List[T]] = observable2Enumerator(asyncBucket.get(key)) run Iteratee.fold(List.empty[JsonDocument]) { (l, e) => e :: l } map {
+      _.reverse
+    } map {
+      s => s map (ss => r.reads(Json.parse(ss.content().toString)).get)
+    }
 
-
-
-
-
-
+    res map {
+      case head :: tail => Some(head)
+      case Nil => None
+    }
+  }
 }

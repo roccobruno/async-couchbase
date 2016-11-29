@@ -8,6 +8,7 @@ import com.couchbase.client.java.document.json.JsonArray
 import com.couchbase.client.java.query.{N1qlQuery, ParameterizedN1qlQuery}
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.example.User
+import org.asyncouchbase.index.IndexApi
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import util.Testing
 
@@ -18,7 +19,7 @@ class BucketSpec extends Testing {
 
   trait Setup {
 
-    val bucketImpl = new BucketApi {
+    val bucketImpl = new IndexApi  {
       override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
     }
 
@@ -63,12 +64,17 @@ class BucketSpec extends Testing {
 
     "return 2 documents in " in new Setup  {
       await(bucketImpl.upsert[User]("u:rocco1", User("rocco","eocco@test.com",Seq("test"))))
+      await(bucketImpl.dropIndex("#primary"))
+      await(bucketImpl.createPrimaryIndex(deferBuild = false))
+
+      Thread.sleep(5000)
 
       val query = N1qlQuery.parameterized("SELECT name, email, interests FROM bobbit WHERE $1 IN interests",
         JsonArray.from("test"))
       val results = await(bucketImpl.find[User](query))
 
       results.size shouldBe 2
+      await(bucketImpl.dropIndex("#primary"))
     }
 
     "delete a doc by key" in new Setup  {
