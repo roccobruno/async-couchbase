@@ -19,7 +19,7 @@ class BucketSpec extends Testing {
 
   trait Setup {
 
-    val bucketImpl = new IndexApi  {
+    val bucket = new IndexApi  {
       override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
     }
 
@@ -38,9 +38,9 @@ class BucketSpec extends Testing {
     "return a document by key" in new Setup {
 
       //prepopulate db
-      await(bucketImpl.upsert[User]("u:king_arthur", User("Arthur","kingarthur@couchbase.com",Seq("test","test2"))))
+      await(bucket.upsert[User]("u:king_arthur", User("Arthur","kingarthur@couchbase.com",Seq("test","test2"))))
 
-      val result = await(bucketImpl.get[User]("u:king_arthur"))
+      val result = await(bucket.get[User]("u:king_arthur"))
       result.isDefined shouldBe true
       result.get.name shouldBe "Arthur"
       result.get.email shouldBe "kingarthur@couchbase.com"
@@ -50,10 +50,10 @@ class BucketSpec extends Testing {
 
     "upsert a document" in new Setup {
 
-      val result = await(bucketImpl.upsert[User]("u:rocco", User("rocco","eocco@test.com",Seq())))
+      val result = await(bucket.upsert[User]("u:rocco", User("rocco","eocco@test.com",Seq())))
       result.isSuccess shouldBe true
 
-      val readDocument = await(bucketImpl.get[User]("u:rocco"))
+      val readDocument = await(bucket.get[User]("u:rocco"))
       readDocument.isDefined shouldBe true
       readDocument.get.name shouldBe "rocco"
       readDocument.get.email shouldBe "eocco@test.com"
@@ -63,32 +63,32 @@ class BucketSpec extends Testing {
     }
 
     "return 2 documents in " in new Setup  {
-      await(bucketImpl.upsert[User]("u:rocco1", User("rocco","eocco@test.com",Seq("test"))))
-      await(bucketImpl.dropIndex("#primary"))
-      await(bucketImpl.createPrimaryIndex(deferBuild = false))
+      await(bucket.upsert[User]("u:rocco1", User("rocco","eocco@test.com",Seq("test"))))
+      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
+      await(bucket.createPrimaryIndex(deferBuild = false))
 
       Thread.sleep(5000)
 
       val query = N1qlQuery.parameterized("SELECT name, email, interests FROM bobbit WHERE $1 IN interests",
         JsonArray.from("test"))
-      val results = await(bucketImpl.find[User](query))
+      val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
-      await(bucketImpl.dropIndex("#primary"))
+      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
     }
 
     "delete a doc by key" in new Setup  {
 
 
-      await(bucketImpl.upsert[User]("u:rocco23", User("rocco","eocco@test.com",Seq("test"))))
+      await(bucket.upsert[User]("u:rocco23", User("rocco","eocco@test.com",Seq("test"))))
 
-      val rec = await(bucketImpl.get[User]("u:rocco23"))
+      val rec = await(bucket.get[User]("u:rocco23"))
       rec.isDefined shouldBe true
 
-      val result = await(bucketImpl.delete("u:rocco23"))
+      val result = await(bucket.delete("u:rocco23"))
       result.isSuccess shouldBe true
 
-      val recs = await(bucketImpl.get[User]("u:rocco23"))
+      val recs = await(bucket.get[User]("u:rocco23"))
       recs.isDefined shouldBe false
 
     }

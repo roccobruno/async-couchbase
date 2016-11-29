@@ -2,7 +2,7 @@ package org.asyncouchbase.index
 
 import com.couchbase.client.java.query.N1qlQuery._
 import com.couchbase.client.java.query.Select.select
-import com.couchbase.client.java.query.{Index, N1qlQuery, Select}
+import com.couchbase.client.java.query.{AsyncN1qlQueryResult, Index, N1qlQuery, Select}
 import com.couchbase.client.java.query.dsl.Expression._
 import org.asyncouchbase.util.Converters.toFuture
 import org.asyncouchbase.bucket.BucketApi
@@ -12,8 +12,20 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 trait IndexApi extends BucketApi {
-
   val INDEX_NAME_PREFIX = "def_"
+  val PRIMARY_INDEX_NAME = "#primary"
+
+
+
+
+
+  def executeOp(observable: rx.Observable[AsyncN1qlQueryResult]): Future[OpsResult] = {
+    toFuture(observable) map {
+      result =>
+        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
+    }
+  }
+
 
   def createIndex[T](fields: Seq[String], deferBuild: Boolean = true): Future[OpsResult] = {
 
@@ -31,10 +43,7 @@ trait IndexApi extends BucketApi {
       case _ => stat.withDefer()
     }
 
-    toFuture(asyncBucket.query(simple(valuateDeferBuild))) map {
-      result =>
-        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
-    }
+    executeOp(asyncBucket.query(simple(valuateDeferBuild)))
   }
 
   def buildIndex[T](fields: Seq[String]): Future[OpsResult] = {
@@ -46,20 +55,14 @@ trait IndexApi extends BucketApi {
 
     val indName = indexName.dropRight(1)
     val stat = Index.buildIndex().on(asyncBucket.name()).indexes(indName)
-    toFuture(asyncBucket.query(simple(stat))) map {
-      result =>
-        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
-    }
+    executeOp(asyncBucket.query(simple(stat)))
   }
 
 
   def buildPrimaryIndex(): Future[OpsResult] = {
-    val indexName = "#primary"
+    val indexName = PRIMARY_INDEX_NAME
     val stat = Index.buildIndex().on(asyncBucket.name()).indexes(indexName)
-    toFuture(asyncBucket.query(simple(stat))) map {
-      result =>
-        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
-    }
+    executeOp(asyncBucket.query(simple(stat)))
   }
 
 
@@ -89,10 +92,7 @@ trait IndexApi extends BucketApi {
       case _ => query.withDefer()
     }
 
-    toFuture(asyncBucket.query(valuateDeferBuild)) map {
-      result =>
-        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
-    }
+    executeOp(asyncBucket.query(valuateDeferBuild))
   }
 
 }

@@ -17,7 +17,7 @@ class IndexApiSpec  extends Testing {
   override protected def beforeAll(): Unit = {
 
     await(bucket.dropIndex("def_interests"))
-    await(bucket.dropIndex("#primary"))
+    await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
     await(bucket.dropIndex("def_name"))
 
   }
@@ -51,7 +51,7 @@ class IndexApiSpec  extends Testing {
     }
 
     "create primary index" in new Setup {
-      await(bucket.dropIndex("#primary"))
+      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
 
       val res = await(bucket.createPrimaryIndex())
       res.isSuccess shouldBe true
