@@ -1,6 +1,5 @@
 package org.asyncouchebase.index
 
-import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.index.IndexApi
 import util.Testing
@@ -43,6 +42,33 @@ class IndexApiSpec  extends Testing {
       await(bucket.createPrimaryIndex())
       val result = await(bucket.findIndexes())
       result.size shouldBe 2
+    }
+
+    "build primary index" in new Setup {
+      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
+
+      await(bucket.createPrimaryIndex(deferBuild = true))
+      await(bucket.buildPrimaryIndex())
+
+      val result = await(bucket.findIndexes())
+      result.filter(index => index.name == bucket.PRIMARY_INDEX_NAME).foreach {
+        ind =>
+          ind.state shouldBe "building"
+      }
+    }
+
+    "build secondary index" in new Setup {
+
+      await(bucket.createIndex(Seq("email"), deferBuild = true))
+      await(bucket.buildIndex(Seq("email")))
+
+      val result = await(bucket.findIndexes())
+      result.filter(index => index.name == "def_email").foreach {
+        ind =>
+          ind.state shouldBe "online"
+      }
+
+      await(bucket.dropIndex("def_email"))
     }
 
     "delete index" in new Setup {

@@ -1,12 +1,20 @@
 package org.asyncouchbase
 
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
 
 package object model {
 
   case class OpsResult(isSuccess: Boolean, msg: String = "")
 
+  /**
+    *
+    * @param name
+    * @param isPrimary
+    * @param keys
+    * @param id
+    * @param state can be either 'Created' or 'Building' or 'Ready'
+    */
   case class CBIndex(name: String, isPrimary: Boolean, keys: Seq[String], id: String, state: String)
   object CBIndex {
 

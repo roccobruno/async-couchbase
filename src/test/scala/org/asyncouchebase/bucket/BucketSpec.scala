@@ -1,19 +1,12 @@
 package org.asyncouchebase.bucket
 
-import java.util.concurrent.TimeUnit
-
-import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.document.json.JsonArray
-import com.couchbase.client.java.query.{N1qlQuery, ParameterizedN1qlQuery}
-import org.asyncouchbase.bucket.BucketApi
+import com.couchbase.client.java.query.N1qlQuery
+import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import util.Testing
-
-import scala.concurrent.{Await, Awaitable}
-import scala.concurrent.duration._
 
 class BucketSpec extends Testing {
 
@@ -139,6 +132,8 @@ class BucketSpec extends Testing {
 
       val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
       value shouldBe None
+
+      await(bucket.delete[User](docId))
 
     }
 
