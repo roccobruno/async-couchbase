@@ -2,7 +2,9 @@ package org.asyncouchbase
 
 import play.api.libs.iteratee.Concurrent.Channel
 import play.api.libs.iteratee.{Concurrent, Enumerator, Input}
+import rx.lang.scala.JavaConversions._
 import rx.lang.scala.Observable
+
 import scala.concurrent.ExecutionContext.Implicits.global
 object Converters {
 
@@ -24,5 +26,10 @@ object Converters {
     override def onCompleted(): Unit = channel.end()
     override def onError(e: Throwable): Unit = channel.end(e)
   }
+
+  /*
+   Observable to Future
+   */
+  implicit def toFuture[T](observable: rx.Observable[T]) = toScalaObservable(observable).toBlocking.toFuture
 
 }

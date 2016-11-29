@@ -5,8 +5,8 @@ import java.util.concurrent.TimeUnit
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.document.json.JsonArray
-import com.couchbase.client.java.query.N1qlQuery
-import org.asyncouchbase.bucket.Bucket
+import com.couchbase.client.java.query.{N1qlQuery, ParameterizedN1qlQuery}
+import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.example.User
 import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
 import util.Testing
@@ -15,6 +15,14 @@ import scala.concurrent.{Await, Awaitable}
 import scala.concurrent.duration._
 
 class BucketSpec extends Testing {
+
+  trait Setup {
+
+    val bucketImpl = new BucketApi {
+      override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
+    }
+
+  }
 
 
   val cluster = CouchbaseCluster.create("localhost")
@@ -26,11 +34,7 @@ class BucketSpec extends Testing {
 
 
   "a Bucket" should {
-    "return a document by key" in {
-
-      val bucketImpl = new Bucket {
-        override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
-      }
+    "return a document by key" in new Setup {
 
       //prepopulate db
       await(bucketImpl.upsert[User]("u:king_arthur", User("Arthur","kingarthur@couchbase.com",Seq("test","test2"))))
@@ -43,11 +47,8 @@ class BucketSpec extends Testing {
 
     }
 
-    "upsert a document" in {
+    "upsert a document" in new Setup {
 
-      val bucketImpl = new Bucket {
-        override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
-      }
       val result = await(bucketImpl.upsert[User]("u:rocco", User("rocco","eocco@test.com",Seq())))
       result.isSuccess shouldBe true
 
@@ -60,17 +61,32 @@ class BucketSpec extends Testing {
 
     }
 
-    "return 2 documents in " in {
-      val bucketImpl = new Bucket {
-        override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
-      }
-      await(bucketImpl.upsert[User]("u:rocco2", User("rocco","eocco@test.com",Seq("test"))))
+    "return 2 documents in " in new Setup  {
+      await(bucketImpl.upsert[User]("u:rocco1", User("rocco","eocco@test.com",Seq("test"))))
 
-      val results = await(bucketImpl.find[User](N1qlQuery.parameterized("SELECT name, email, interests FROM bobbit WHERE $1 IN interests",
-        JsonArray.from("test"))))
+      val query = N1qlQuery.parameterized("SELECT name, email, interests FROM bobbit WHERE $1 IN interests",
+        JsonArray.from("test"))
+      val results = await(bucketImpl.find[User](query))
 
       results.size shouldBe 2
     }
+
+    "delete a doc by key" in new Setup  {
+
+
+      await(bucketImpl.upsert[User]("u:rocco23", User("rocco","eocco@test.com",Seq("test"))))
+
+      val rec = await(bucketImpl.get[User]("u:rocco23"))
+      rec.isDefined shouldBe true
+
+      val result = await(bucketImpl.delete("u:rocco23"))
+      result.isSuccess shouldBe true
+
+      val recs = await(bucketImpl.get[User]("u:rocco23"))
+      recs.isDefined shouldBe false
+
+    }
+
 
   }
 
