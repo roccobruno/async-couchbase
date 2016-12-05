@@ -2,11 +2,12 @@ package org.asyncouchbase.index
 
 import com.couchbase.client.java.query.N1qlQuery._
 import com.couchbase.client.java.query.Select.select
-import com.couchbase.client.java.query.{AsyncN1qlQueryResult, Index, N1qlQuery, Select}
+import com.couchbase.client.java.query._
 import com.couchbase.client.java.query.dsl.Expression._
-import org.asyncouchbase.util.Converters.toFuture
+import com.couchbase.client.java.query.dsl.path.index.IndexType
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.model.{CBIndex, OpsResult}
+import org.asyncouchbase.util.Converters.toFuture
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -60,8 +61,7 @@ trait IndexApi extends BucketApi {
 
 
   def buildPrimaryIndex(): Future[OpsResult] = {
-    val indexName = PRIMARY_INDEX_NAME
-    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(indexName)
+    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(PRIMARY_INDEX_NAME)
     executeOp(asyncBucket.query(simple(stat)))
   }
 
@@ -78,14 +78,16 @@ trait IndexApi extends BucketApi {
   }
 
   def dropIndex(indexName: String): Future[OpsResult] = {
-    toFuture(asyncBucket.query(simple(Index.dropIndex(asyncBucket.name(), indexName)))) map {
+    val query: SimpleN1qlQuery = simple(Index.dropIndex(asyncBucket.name(), indexName))
+    println(s"query ${query.n1ql()}")
+    toFuture(asyncBucket.query(query)) map {
       result =>
         OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
     }
   }
 
   def createPrimaryIndex(deferBuild: Boolean = true): Future[OpsResult] = {
-    val query = Index.createPrimaryIndex().on(asyncBucket.name())
+    val query = Index.createPrimaryIndex().on(asyncBucket.name()).using(IndexType.GSI)
 
     def valuateDeferBuild = deferBuild match  {
       case false => query
@@ -93,6 +95,22 @@ trait IndexApi extends BucketApi {
     }
 
     executeOp(asyncBucket.query(valuateDeferBuild))
+  }
+
+  def dropAllIndexes(): Future[OpsResult] = {
+
+    def deleteIndexes(indexes: Seq[CBIndex]): Future[OpsResult] = {
+
+      indexes.map { index =>
+        dropIndex(index.name)
+      }.head
+    }
+
+    for{
+
+      indexes <- findIndexes()
+      res <- deleteIndexes(indexes)
+    } yield res
   }
 
 }

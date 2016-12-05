@@ -9,16 +9,12 @@ class IndexApiSpec  extends Testing {
 
   val cluster = CouchbaseCluster.create("localhost")
   val bucket = new IndexApi {
-    override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
+    override def asyncBucket: AsyncBucket = cluster.openBucket("default").async()
   }
 
 
   override protected def beforeAll(): Unit = {
-
-    await(bucket.dropIndex("def_interests"))
-    await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
-    await(bucket.dropIndex("def_name"))
-
+//    await(bucket.dropAllIndexes())
   }
 
   override protected def afterAll(): Unit = {
@@ -51,9 +47,9 @@ class IndexApiSpec  extends Testing {
       await(bucket.buildPrimaryIndex())
 
       val result = await(bucket.findIndexes())
-      result.filter(index => index.name == bucket.PRIMARY_INDEX_NAME).foreach {
+      result.filter(_.name == bucket.PRIMARY_INDEX_NAME).foreach {
         ind =>
-          ind.state shouldBe "building"
+          Seq("deferred","building", "online") should contain(ind.state)
       }
     }
 
@@ -65,7 +61,7 @@ class IndexApiSpec  extends Testing {
       val result = await(bucket.findIndexes())
       result.filter(index => index.name == "def_email").foreach {
         ind =>
-          ind.state shouldBe "online"
+          Seq("deferred","building", "online") should contain(ind.state)
       }
 
       await(bucket.dropIndex("def_email"))

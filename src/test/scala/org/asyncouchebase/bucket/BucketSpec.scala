@@ -1,21 +1,51 @@
 package org.asyncouchebase.bucket
 
 import com.couchbase.client.java.auth.ClassicAuthenticator
-import com.couchbase.client.java.document.json.JsonArray
+import com.couchbase.client.java.document.json.JsonArray.from
+import com.couchbase.client.java.document.json.JsonObject
 import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
+import org.joda.time.DateTime
 import util.Testing
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class BucketSpec extends Testing {
 
-  trait Setup {
+  val bucket = new IndexApi {
+    override def asyncBucket: AsyncBucket = cluster.openBucket("default").async()
+  }
 
-    val bucket = new IndexApi {
-      override def asyncBucket: AsyncBucket = cluster.openBucket("bobbit").async()
+  def deleteAllDocs: Future[Unit] = {
+
+    val query = N1qlQuery.simple("SELECT name,dob,email,interests,meta().id FROM default")
+
+    def deleteAll(records: Seq[User]): Unit = {
+      records.foreach { rec:User =>
+        bucket.delete(rec.id.get)
+      }
     }
 
+
+    bucket.find[User](query) map {
+      records => println(s"$records"); deleteAll(records)
+    }
+  }
+
+  trait Setup {
+
+
+
+
+
+  }
+
+  override protected def beforeAll(): Unit = {
+    await(deleteAllDocs)
+    await(bucket.createPrimaryIndex(deferBuild = false))
   }
 
 
@@ -23,8 +53,11 @@ class BucketSpec extends Testing {
   cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
 
   override protected def afterAll(): Unit = {
+//    await(bucket.dropAllIndexes())
     cluster.disconnect()
   }
+
+
 
 
   "a Bucket" should {
@@ -39,6 +72,9 @@ class BucketSpec extends Testing {
       result.get.email shouldBe "kingarthur@couchbase.com"
       result.get.interests.size shouldBe 2
 
+      //clean up
+      await(bucket.delete("u:king_arthur"))
+
     }
 
     "upsert a document" in new Setup {
@@ -52,22 +88,31 @@ class BucketSpec extends Testing {
       readDocument.get.email shouldBe "eocco@test.com"
       readDocument.get.interests.size shouldBe 0
 
-
+      //clean up
+      await(bucket.delete("u:rocco"))
     }
 
     "return 2 documents in " in new Setup {
+
       await(bucket.upsert[User]("u:rocco1", User("rocco", "eocco@test.com", Seq("test"))))
-      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
-      await(bucket.createPrimaryIndex(deferBuild = false))
+      await(bucket.get[User]("u:rocco1")).isDefined shouldBe true
+      await(bucket.upsert[User]("u:rocco2", User("rocco", "eocco@test.com", Seq("test"))))
+      await(bucket.get[User]("u:rocco2")).isDefined shouldBe true
+      await(bucket.upsert[User]("u:rocco3", User("rocco", "eocco@test.com", Seq("cacca"))))
+      await(bucket.get[User]("u:rocco3")).isDefined shouldBe true
 
       Thread.sleep(5000)
 
-      val query = N1qlQuery.parameterized("SELECT name, email, interests FROM bobbit WHERE $1 IN interests",
-        JsonArray.from("test"))
+      val query = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE $1 IN interests",
+        from( "test"))
+      await(bucket.find[User](query))
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
-      await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
+//      clean up
+      await(bucket.delete("u:rocco1"))
+      await(bucket.delete("u:rocco2"))
+      await(bucket.delete("u:rocco3"))
     }
 
     "delete a doc by key" in new Setup {
@@ -134,6 +179,49 @@ class BucketSpec extends Testing {
       value shouldBe None
 
       await(bucket.delete[User](docId))
+
+    }
+
+    "query by dateTime" in new Setup {
+
+      private val docId: String = "u:testdate"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
+      await(bucket.upsert[User](docId+"2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
+
+      Thread.sleep(5000)
+
+      val query = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE dob BETWEEN STR_TO_MILLIS($timeFrom) AND STR_TO_MILLIS($timeTo)"
+      , JsonObject.create()
+          .put("timeFrom", DateTime.now().minusYears(11).toString)
+          .put("timeTo", DateTime.now().toString)
+       )
+      val results = await(bucket.find[User](query))
+
+      results.size shouldBe 1
+      results(0).name shouldBe "rocco2"
+
+
+      val query2 = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE dob BETWEEN STR_TO_MILLIS($timeFrom) AND STR_TO_MILLIS($timeTo)"
+        , JsonObject.create()
+          .put("timeFrom", DateTime.now().minusYears(22).toString)
+          .put("timeTo", DateTime.now().toString)
+      )
+
+      val results2 = await(bucket.find[User](query2))
+
+      results2.size shouldBe 2
+
+
+      val query3 = N1qlQuery.parameterized("SELECT name, email, interests, dob FROM default WHERE dob BETWEEN STR_TO_MILLIS($2) AND STR_TO_MILLIS($3)",
+        from(bucket.asyncBucket.name(), DateTime.now().minusYears(30).toString,DateTime.now().minusYears(15).toString))
+      val results3 = await(bucket.find[User](query3))
+
+      results3.size shouldBe 1
+      results3(0).name shouldBe "rocco"
+
+      await(bucket.delete[User](docId))
+      await(bucket.delete[User](docId+"2"))
+
 
     }
 

@@ -1,17 +1,15 @@
 package org.asyncouchbase.bucket
 
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory
-import com.couchbase.client.java.document.JsonDocument
+import com.couchbase.client.java.document.JsonDocument.create
 import com.couchbase.client.java.document.json.JsonObject.fromJson
-import com.couchbase.client.java.document.json.{JsonArray, JsonObject}
 import com.couchbase.client.java.query._
-import com.couchbase.client.java.{AsyncBucket, CouchbaseAsyncBucket, PersistTo, ReplicateTo}
+import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
+import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.util.Converters._
-import org.asyncouchbase.model.{CBIndex, OpsResult}
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json.parse
-import play.api.libs.json.{JsResult, Json, Reads, Writes}
-import rx.Observable
+import play.api.libs.json.{Reads, Writes}
 import rx.lang.scala.JavaConversions.toScalaObservable
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,12 +18,12 @@ import scala.concurrent.Future
 trait BucketApi {
  val logger =  CouchbaseLoggerFactory.getInstance(classOf[BucketApi])
 
-  def asyncBucket: AsyncBucket
+   def asyncBucket: AsyncBucket
 
 
-  def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.MASTER, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
+  def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
     val ent = fromJson(r.writes(entity).toString())
-    toFuture(asyncBucket.upsert(JsonDocument.create(key, ent))) map {
+    toFuture(asyncBucket.upsert(create(key, ent), persistTo, replicateTo)) map {
       _ =>
         OpsResult(isSuccess = true, "")
     } recover {
@@ -37,8 +35,8 @@ trait BucketApi {
     }
   }
 
-  def delete[T](key: String): Future[OpsResult] = {
-    toFuture(asyncBucket.remove(key)) map {
+  def delete[T](key: String, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
+    toFuture(asyncBucket.remove(key, persistTo, replicateTo)) map {
       _ => OpsResult(isSuccess = true, "")
     } recover {
       case ex: Throwable => {
@@ -60,10 +58,17 @@ trait BucketApi {
       }
     }
 
-    for {
+    val executeQuery = for {
       observable <- toFuture(asyncBucket.query(query))
       results <- convert(observable)
     } yield results
+
+    executeQuery recover {
+      case ex: Throwable => logger.error(s"ERROR IN FIND method query ${query.n1ql()} - err ${ex.getMessage}")
+
+    }
+
+    executeQuery
 
   }
 
