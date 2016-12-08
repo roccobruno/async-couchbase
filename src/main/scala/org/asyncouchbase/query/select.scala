@@ -7,7 +7,33 @@ trait WhereExpression
 trait BinaryExpression extends WhereExpression
 
 
-class INEpression(value: String) extends BinaryExpression {
+
+class Range(firstValue: String) {
+
+  def _firstValue = firstValue
+  var secondValue = ""
+  def AND (secondValue: String) = {
+    this.secondValue = secondValue
+    this
+  }
+
+  override def toString: String = s"STR_TO_MILLIS('$firstValue') AND STR_TO_MILLIS('$secondValue')"
+}
+
+class RangeExpression(fieldName: String) extends BinaryExpression {
+
+  def name = fieldName
+  var range : Option[Range]= None
+
+  def BETWEEN(range: Range) = {
+    this.range = Some(range)
+    this
+  }
+
+  override def toString: String = s"$fieldName BETWEEN ${range.getOrElse("")}"
+}
+
+class INExpression(value: String) extends BinaryExpression {
 
   def fieldValue = value
   var fieldName = ""
@@ -75,7 +101,9 @@ class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
 
 object Expression {
   implicit def toExpression(fieldName: String) = new Expression(fieldName)
-  implicit def toINExpression(fieldValue: String) = new INEpression(fieldValue)
+  implicit def toINExpression(fieldValue: String) = new INExpression(fieldValue)
+  implicit def toRangeExpression(fieldValue: String) = new RangeExpression(fieldValue)
+  implicit def toRange(fieldValue: String) = new Range(fieldValue)
   implicit def toExpressionTree(expression: Expression) = new ExpressionTree(expression)
 }
 
@@ -102,25 +130,20 @@ class Query {
   }
 
   private def buildWhereClause(expression: Option[WhereExpression]): String = {
-
-    if (expression.isEmpty)
-      ""
-    else {
       expression.get match {
         case ex: BinaryExpression => ex.toString
         case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex.operator} ${buildWhereClause(ex.leftExpression)})"
       }
-    }
   }
 
   def buildQuery: N1qlQuery = {
 
     val whereExp = expression match {
       case None => ""
-      case _ => buildWhereClause(expression)
+      case _ => s" WHERE ${buildWhereClause(expression)}"
     }
 
-    val statement = s"SELECT $selector FROM $bucketName WHERE ${whereExp}"
+    val statement = s"SELECT $selector FROM $bucketName${whereExp}"
     N1qlQuery.simple(statement)
 
   }
