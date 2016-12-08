@@ -23,7 +23,7 @@ class Range(firstValue: String) {
 class RangeExpression(fieldName: String) extends BinaryExpression {
 
   def name = fieldName
-  var range : Option[Range]= None
+  private var range : Option[Range]= None
 
   def BETWEEN(range: Range) = {
     this.range = Some(range)
@@ -36,7 +36,7 @@ class RangeExpression(fieldName: String) extends BinaryExpression {
 class INExpression(value: String) extends BinaryExpression {
 
   def fieldValue = value
-  var fieldName = ""
+  private var fieldName = ""
 
   def IN(fieldName: String) = {
     this.fieldName = fieldName
@@ -50,7 +50,7 @@ class Expression(fieldName: String) extends BinaryExpression {
 
   def name = fieldName
 
-  var value = ""
+  private var value = ""
 
   def ===(value: String) = {
     this.value = value
@@ -64,9 +64,11 @@ class Expression(fieldName: String) extends BinaryExpression {
 class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
 
   def expression = Some(rightExpression)
+  def _leftExpression = leftExpression
+  def _operator = operator
 
-  var leftExpression: Option[WhereExpression] = None
-  var operator = "AND"
+  private var leftExpression: Option[WhereExpression] = None
+  private var operator = "AND"
 
   def AND(expression: WhereExpression): ExpressionTree = {
 
@@ -109,9 +111,9 @@ object Expression {
 
 class Query {
 
-  var selector: String = "*"
-  var bucketName = ""
-  var expression: Option[WhereExpression] = None
+  private var selector: String = "*"
+  private var bucketName = ""
+  private var expression: Option[WhereExpression] = None
 
   def SELECT(selector: String) = {
     this.selector = selector
@@ -132,7 +134,7 @@ class Query {
   private def buildWhereClause(expression: Option[WhereExpression]): String = {
       expression.get match {
         case ex: BinaryExpression => ex.toString
-        case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex.operator} ${buildWhereClause(ex.leftExpression)})"
+        case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex._operator} ${buildWhereClause(ex._leftExpression)})"
       }
   }
 

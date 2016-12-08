@@ -17,6 +17,14 @@ class QuerySpec extends Testing {
 
     }
 
+    "create the right N1SQL statement with no expression but selected fields" in {
+
+      val query = new Query() SELECT "name, lastName, meta().id" FROM "default"
+
+      query.buildQuery.statement().toString shouldBe "SELECT name, lastName, meta().id FROM default"
+
+    }
+
     "create the right N1SQL statement with single expression" in {
 
       val query = new Query() SELECT "*" FROM "default" WHERE "name" === "test"

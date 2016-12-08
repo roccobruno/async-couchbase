@@ -6,6 +6,7 @@ import com.couchbase.client.java.document.json.JsonObject.fromJson
 import com.couchbase.client.java.query._
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
 import org.asyncouchbase.model.OpsResult
+import org.asyncouchbase.query.Query
 import org.asyncouchbase.util.Converters._
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json.parse
@@ -53,8 +54,6 @@ trait BucketApi {
 
     //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
 
-    query.statement()
-
     def convert(row: AsyncN1qlQueryResult) = {
       observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
         _.reverse
@@ -70,6 +69,34 @@ trait BucketApi {
 
     executeQuery recover {
       case ex: Throwable => logger.error(s"ERROR IN FIND method query ${query.n1ql()} - err ${ex.getMessage}")
+
+    }
+
+    executeQuery
+
+  }
+
+
+  def find[T](query: Query)(implicit r: Reads[T]): Future[List[T]] = {
+
+    //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
+
+    def convert(row: AsyncN1qlQueryResult) = {
+      observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
+        _.reverse
+      } map {
+        s => s map (ss => r.reads(parse(ss.value().toString)).get)
+      }
+    }
+
+    val buildQuery: N1qlQuery = query.buildQuery
+    val executeQuery = for {
+      observable <- toFuture(asyncBucket.query(buildQuery))
+      results <- convert(observable)
+    } yield results
+
+    executeQuery recover {
+      case ex: Throwable => logger.error(s"ERROR IN FIND method query ${buildQuery.n1ql()} - err ${ex.getMessage}")
 
     }
 

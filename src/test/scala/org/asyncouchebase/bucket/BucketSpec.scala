@@ -2,11 +2,12 @@ package org.asyncouchebase.bucket
 
 import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.document.json.JsonArray.from
-import com.couchbase.client.java.document.json.JsonObject
 import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
+import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.Query
 import org.joda.time.DateTime
 import util.Testing
 
@@ -50,6 +51,7 @@ class BucketSpec extends Testing {
 
   override protected def beforeAll(): Unit = {
     await(deleteAllDocs)
+    await(bucket.dropAllIndexes())
     await(bucket.createPrimaryIndex(deferBuild = false))
   }
 
@@ -195,30 +197,19 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE dob BETWEEN STR_TO_MILLIS($timeFrom) AND STR_TO_MILLIS($timeTo)"
-      , JsonObject.create()
-          .put("timeFrom", DateTime.now().minusYears(11).toString)
-          .put("timeTo", DateTime.now().toString)
-       )
+      val query = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11).toString AND DateTime.now().toString))
+
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 1
       results(0).name shouldBe "rocco2"
 
-
-      val query2 = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE dob BETWEEN STR_TO_MILLIS($timeFrom) AND STR_TO_MILLIS($timeTo)"
-        , JsonObject.create()
-          .put("timeFrom", DateTime.now().minusYears(22).toString)
-          .put("timeTo", DateTime.now().toString)
-      )
-
+      val query2 = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22).toString AND DateTime.now().toString))
       val results2 = await(bucket.find[User](query2))
 
       results2.size shouldBe 2
 
-
-      val query3 = N1qlQuery.parameterized("SELECT name, email, interests, dob FROM default WHERE dob BETWEEN STR_TO_MILLIS($2) AND STR_TO_MILLIS($3)",
-        from(bucket.asyncBucket.name(), DateTime.now().minusYears(30).toString,DateTime.now().minusYears(15).toString))
+      val query3 = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30).toString AND DateTime.now().minusYears(15).toString))
       val results3 = await(bucket.find[User](query3))
 
       results3.size shouldBe 1
