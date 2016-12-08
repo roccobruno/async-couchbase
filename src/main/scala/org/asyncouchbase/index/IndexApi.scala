@@ -79,7 +79,6 @@ trait IndexApi extends BucketApi {
 
   def dropIndex(indexName: String): Future[OpsResult] = {
     val query: SimpleN1qlQuery = simple(Index.dropIndex(asyncBucket.name(), indexName))
-    println(s"query ${query.n1ql()}")
     toFuture(asyncBucket.query(query)) map {
       result =>
         OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess

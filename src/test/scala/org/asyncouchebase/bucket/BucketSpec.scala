@@ -13,6 +13,11 @@ import util.Testing
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
+
+
+/*
+  IT needs a Couchbase instance running in localhost:8091 with default bucket
+ */
 class BucketSpec extends Testing {
 
   val bucket = new IndexApi {
@@ -109,7 +114,7 @@ class BucketSpec extends Testing {
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
-//      clean up
+      //      clean up
       await(bucket.delete("u:rocco1"))
       await(bucket.delete("u:rocco2"))
       await(bucket.delete("u:rocco3"))

@@ -4,6 +4,12 @@ import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.index.IndexApi
 import util.Testing
 
+
+
+
+/*
+  IT needs a Couchbase instance running in localhost:8091 with default bucket
+ */
 class IndexApiSpec  extends Testing {
 
 

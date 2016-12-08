@@ -1,0 +1,128 @@
+package org.asyncouchbase.query
+
+import com.couchbase.client.java.query.N1qlQuery
+
+
+trait WhereExpression
+trait BinaryExpression extends WhereExpression
+
+
+class INEpression(value: String) extends BinaryExpression {
+
+  def fieldValue = value
+  var fieldName = ""
+
+  def IN(fieldName: String) = {
+    this.fieldName = fieldName
+    this
+  }
+
+  override def toString: String = s"'$fieldValue' IN $fieldName"
+}
+
+class Expression(fieldName: String) extends BinaryExpression {
+
+  def name = fieldName
+
+  var value = ""
+
+  def ===(value: String) = {
+    this.value = value
+    this
+  }
+
+
+  override def toString: String = s"$name = '$value'"
+}
+
+class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
+
+  def expression = Some(rightExpression)
+
+  var leftExpression: Option[WhereExpression] = None
+  var operator = "AND"
+
+  def AND(expression: WhereExpression): ExpressionTree = {
+
+    leftExpression match {
+      case None => {
+        leftExpression = Some(expression)
+        this
+      }
+      case Some(ex) => {
+        new ExpressionTree(this) AND expression
+      }
+    }
+  }
+
+  def OR(expression: WhereExpression): ExpressionTree = {
+
+    leftExpression match {
+      case None => {
+        leftExpression = Some(expression)
+        this.operator = "OR"
+        this
+      }
+      case Some(ex) => {
+        new ExpressionTree(this) OR expression
+      }
+    }
+  }
+
+  override def toString: String = s"${expression} $operator ${leftExpression}"
+}
+
+
+object Expression {
+  implicit def toExpression(fieldName: String) = new Expression(fieldName)
+  implicit def toINExpression(fieldValue: String) = new INEpression(fieldValue)
+  implicit def toExpressionTree(expression: Expression) = new ExpressionTree(expression)
+}
+
+class Query {
+
+  var selector: String = "*"
+  var bucketName = ""
+  var expression: Option[WhereExpression] = None
+
+  def SELECT(selector: String) = {
+    this.selector = selector
+    this
+  }
+
+  def FROM(tableName: String) = {
+    this.bucketName = tableName
+    this
+  }
+
+
+  def WHERE(expression: WhereExpression) = {
+    this.expression = Some(expression)
+    this
+  }
+
+  private def buildWhereClause(expression: Option[WhereExpression]): String = {
+
+    if (expression.isEmpty)
+      ""
+    else {
+      expression.get match {
+        case ex: BinaryExpression => ex.toString
+        case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex.operator} ${buildWhereClause(ex.leftExpression)})"
+      }
+    }
+  }
+
+  def buildQuery: N1qlQuery = {
+
+    val whereExp = expression match {
+      case None => ""
+      case _ => buildWhereClause(expression)
+    }
+
+    val statement = s"SELECT $selector FROM $bucketName WHERE ${whereExp}"
+    N1qlQuery.simple(statement)
+
+  }
+
+}

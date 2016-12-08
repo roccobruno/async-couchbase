@@ -48,7 +48,12 @@ trait BucketApi {
   }
 
 
+
   def find[T](query: N1qlQuery)(implicit r: Reads[T]): Future[List[T]] = {
+
+    //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
+
+    query.statement()
 
     def convert(row: AsyncN1qlQueryResult) = {
       observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
