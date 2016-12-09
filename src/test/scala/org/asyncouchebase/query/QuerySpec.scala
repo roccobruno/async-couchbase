@@ -1,6 +1,5 @@
 package org.asyncouchebase.query
 
-import org.asyncouchbase.example.User
 import org.asyncouchbase.query.Expression._
 import org.asyncouchbase.query._
 import util.Testing
@@ -99,31 +98,6 @@ class QuerySpec extends Testing {
       query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2016-11-08T17:08:35.389Z') AND STR_TO_MILLIS('2016-12-08T17:08:35.389Z'))"
 
     }
-
-
-  }
-
-
-  "metadata query " should {
-
-    "throw an IllegalArgumentException " in {
-      intercept[IllegalArgumentException] {
-        new MetadataQuery[User]() SELECT "name" FROM "default"
-      }
-    }
-
-
-    "create the right N1SQL statement with no expression" in {
-
-      //case class User(name: String, email: String, interests: Seq[String], dob: DateTime = DateTime.now(), id: Option[String] = None)
-
-
-      val query = new MetadataQuery[User]() SELECT "*" FROM "default"
-
-      query.buildQuery.statement().toString shouldBe "SELECT name,email,interests,dob,meta().id FROM default"
-
-    }
-
 
 
   }

@@ -1,9 +1,6 @@
 package org.asyncouchbase.query
 
 import com.couchbase.client.java.query.N1qlQuery
-import org.asyncouchbase.util.Reflection
-
-import scala.reflect.runtime.universe._
 
 sealed trait WhereExpression
 sealed trait BinaryExpression extends WhereExpression
@@ -125,14 +122,7 @@ trait AbstractQuery[T] extends Query[T] {
 
 }
 
-class MetadataQuery[T: TypeTag] extends SimpleQuery {
-  override def SELECT(selector: String): MetadataQuery[T] = {
-    if(selector != "*") //TODO
-      throw new IllegalArgumentException("Simple query cannot accept a value different from '*'. Use SimpleQuery instead")
-    this.selector = Reflection.getListFields[T]
-    this
-  }
-}
+
 
 
 class SimpleQuery[T] extends AbstractQuery[T] {
