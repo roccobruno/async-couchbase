@@ -1,8 +1,6 @@
 package org.asyncouchebase.bucket
 
 import com.couchbase.client.java.auth.ClassicAuthenticator
-import com.couchbase.client.java.document.json.JsonArray.from
-import com.couchbase.client.java.query.N1qlQuery
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
@@ -27,7 +25,7 @@ class BucketSpec extends Testing {
 
   def deleteAllDocs: Future[Unit] = {
 
-    val query = N1qlQuery.simple("SELECT name,dob,email,interests,meta().id FROM default")
+    val query = new Query() SELECT "name,dob,email,interests,meta().id" FROM "default"
 
     def deleteAll(records: Seq[User]): Unit = {
       records.foreach { rec:User =>
@@ -110,8 +108,8 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = N1qlQuery.parameterized("SELECT name, email, interests, dob, meta().id FROM default WHERE $1 IN interests",
-        from( "test"))
+      val query = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("test" IN "interests")
+
       await(bucket.find[User](query))
       val results = await(bucket.find[User](query))
 
