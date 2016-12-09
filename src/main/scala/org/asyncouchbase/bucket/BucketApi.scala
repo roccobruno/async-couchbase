@@ -6,11 +6,11 @@ import com.couchbase.client.java.document.json.JsonObject.fromJson
 import com.couchbase.client.java.query._
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
 import org.asyncouchbase.model.OpsResult
-import org.asyncouchbase.query.Query
+import org.asyncouchbase.query.{MetadataQuery, SimpleQuery}
 import org.asyncouchbase.util.Converters._
 import play.api.libs.iteratee.Iteratee
 import play.api.libs.json.Json.parse
-import play.api.libs.json.{Reads, Writes}
+import play.api.libs.json._
 import rx.lang.scala.JavaConversions.toScalaObservable
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -48,9 +48,53 @@ trait BucketApi {
     }
   }
 
+  trait Metadata
+
+  case class MetadataRecord(cas: String, id: String, flags: String) extends Metadata
+
+  object MetadataRecord {
+
+    implicit val format = Json.format[MetadataRecord]
+
+  }
+
+  def find[V,T](query: MetadataQuery[T])(implicit v: Reads[V] , r: Reads[T]): Future[Map[V,T]] = {
+
+    //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
+
+    val readFormat : Reads[T] = {
+        (__ \ query._bucketName).read[T]
+    }
+
+    val metadataRead : Reads[V] = {
+      (__ \ "metadata").read[V]
+    }
 
 
-  def find[T](query: Query)(implicit r: Reads[T]): Future[List[T]] = {
+    def convert(row: AsyncN1qlQueryResult) = {
+      observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
+        _.reverse
+      } map {
+        s => s map (ss => (metadataRead.reads(parse(ss.value().toString)).get) -> (readFormat.reads(parse(ss.value().toString)).get)) toMap
+      }
+    }
+
+    val buildQuery: N1qlQuery = query.buildQuery
+    val executeQuery = for {
+      observable <- toFuture(asyncBucket.query(buildQuery))
+      results <- convert(observable)
+    } yield results
+
+    executeQuery recover {
+      case ex: Throwable => logger.error(s"ERROR IN FIND method query ${buildQuery.n1ql()} - err ${ex.getMessage}")
+    }
+
+    executeQuery
+  }
+
+
+
+  def find[T](query: SimpleQuery[T])(implicit r: Reads[T]): Future[List[T]] = {
 
     //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
 
@@ -70,11 +114,9 @@ trait BucketApi {
 
     executeQuery recover {
       case ex: Throwable => logger.error(s"ERROR IN FIND method query ${buildQuery.n1ql()} - err ${ex.getMessage}")
-
     }
 
     executeQuery
-
   }
 
 

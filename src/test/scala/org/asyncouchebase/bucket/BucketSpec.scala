@@ -5,7 +5,7 @@ import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.query.Expression._
-import org.asyncouchbase.query.Query
+import org.asyncouchbase.query.SimpleQuery
 import org.joda.time.DateTime
 import util.Testing
 
@@ -25,7 +25,7 @@ class BucketSpec extends Testing {
 
   def deleteAllDocs: Future[Unit] = {
 
-    val query = new Query() SELECT "name,dob,email,interests,meta().id" FROM "default"
+    val query = new SimpleQuery[User]() SELECT "name,dob,email,interests,meta().id" FROM "default"
 
     def deleteAll(records: Seq[User]): Unit = {
       records.foreach { rec:User =>
@@ -108,16 +108,16 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("test" IN "interests")
+      val query = new SimpleQuery[User]() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("test" IN "interests")
 
       await(bucket.find[User](query))
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
       //      clean up
-      await(bucket.delete("u:rocco1"))
-      await(bucket.delete("u:rocco2"))
-      await(bucket.delete("u:rocco3"))
+//      await(bucket.delete("u:rocco1"))
+//      await(bucket.delete("u:rocco2"))
+//      await(bucket.delete("u:rocco3"))
     }
 
     "delete a doc by key" in new Setup {
@@ -195,19 +195,19 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11).toString AND DateTime.now().toString))
+      val query = new SimpleQuery[User]() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11).toString AND DateTime.now().toString))
 
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 1
       results(0).name shouldBe "rocco2"
 
-      val query2 = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22).toString AND DateTime.now().toString))
+      val query2 = new SimpleQuery[User]() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22).toString AND DateTime.now().toString))
       val results2 = await(bucket.find[User](query2))
 
       results2.size shouldBe 2
 
-      val query3 = new Query() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30).toString AND DateTime.now().minusYears(15).toString))
+      val query3 = new SimpleQuery[User]() SELECT "name, email, interests, dob, meta().id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30).toString AND DateTime.now().minusYears(15).toString))
       val results3 = await(bucket.find[User](query3))
 
       results3.size shouldBe 1

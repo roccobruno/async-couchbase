@@ -1,10 +1,12 @@
 package org.asyncouchbase.query
 
 import com.couchbase.client.java.query.N1qlQuery
+import org.asyncouchbase.util.Reflection
 
+import scala.reflect.runtime.universe._
 
-trait WhereExpression
-trait BinaryExpression extends WhereExpression
+sealed trait WhereExpression
+sealed trait BinaryExpression extends WhereExpression
 
 
 
@@ -109,13 +111,43 @@ object Expression {
   implicit def toExpressionTree(expression: Expression) = new ExpressionTree(expression)
 }
 
-class Query {
+sealed trait Query[T]
 
-  private var selector: String = "*"
+trait AbstractQuery[T] extends Query[T] {
+
+  protected var selector: String = "*"
+
+//  protected def validateSelector = {
+//    selector match {
+//      case ""
+//    }
+//  }
+
+}
+
+class MetadataQuery[T: TypeTag] extends SimpleQuery {
+  override def SELECT(selector: String): MetadataQuery[T] = {
+    if(selector != "*") //TODO
+      throw new IllegalArgumentException("Simple query cannot accept a value different from '*'. Use SimpleQuery instead")
+    this.selector = Reflection.getListFields[T]
+    this
+  }
+}
+
+
+class SimpleQuery[T] extends AbstractQuery[T] {
+
+
   private var bucketName = ""
   private var expression: Option[WhereExpression] = None
 
+  def _bucketName = bucketName
+
   def SELECT(selector: String) = {
+
+    if(selector == "*") //TODO
+      throw new IllegalArgumentException("Simple query cannot accept '*'. Use MetadataQuery instead")
+
     this.selector = selector
     this
   }
