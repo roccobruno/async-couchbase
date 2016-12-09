@@ -48,20 +48,6 @@ trait BucketApi {
     }
   }
 
-  trait Metadata
-
-  case class MetadataRecord(cas: String, id: String, flags: String) extends Metadata
-
-  object MetadataRecord {
-
-    implicit val format = Json.format[MetadataRecord]
-
-  }
-
-
-
-
-
   def find[T](query: SimpleQuery[T])(implicit r: Reads[T]): Future[List[T]] = {
 
     //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}

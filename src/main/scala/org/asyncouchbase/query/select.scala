@@ -1,10 +1,11 @@
 package org.asyncouchbase.query
 
 import com.couchbase.client.java.query.N1qlQuery
+import org.asyncouchbase.util.Reflection
 
 sealed trait WhereExpression
 sealed trait BinaryExpression extends WhereExpression
-
+import scala.reflect.runtime.universe._
 
 
 class Range(firstValue: String) {
@@ -108,24 +109,31 @@ object Expression {
   implicit def toExpressionTree(expression: Expression) = new ExpressionTree(expression)
 }
 
-sealed trait Query[T]
+sealed trait Query
 
-trait AbstractQuery[T] extends Query[T] {
+abstract class AbstractQuery[T: TypeTag] extends Query {
 
   protected var selector: String = "*"
 
-//  protected def validateSelector = {
-//    selector match {
-//      case ""
-//    }
-//  }
+  protected def validateSelector = {
+    selector match {
+      case "*" =>
+      case _ => {
+        val fieldsInEntity = Reflection.getListFields[T]
+        selector.split(",").foreach(name => {
+          if(!fieldsInEntity.contains(name.trim))
+            throw new IllegalArgumentException(s"the Query selector is not valid. A specified field [$name] would not be returned")
+        })
+      }
+    }
+  }
 
 }
 
 
 
 
-class SimpleQuery[T] extends AbstractQuery[T] {
+class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQuery[T] {
 
 
   private var bucketName = ""
@@ -135,10 +143,13 @@ class SimpleQuery[T] extends AbstractQuery[T] {
 
   def SELECT(selector: String) = {
 
-    if(selector == "*") //TODO
-      throw new IllegalArgumentException("Simple query cannot accept '*'. Use MetadataQuery instead")
+    this.selector =   selector match {
+      case "*" => Reflection.getListFields[T]
+      case _ => selector.replace("id","meta().id")
+    }
 
-    this.selector = selector
+    if(validationOn) validateSelector
+
     this
   }
 
