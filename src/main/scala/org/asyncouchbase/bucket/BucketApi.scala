@@ -4,6 +4,7 @@ import com.couchbase.client.core.logging.CouchbaseLoggerFactory
 import com.couchbase.client.java.document.JsonDocument.create
 import com.couchbase.client.java.document.json.JsonObject.fromJson
 import com.couchbase.client.java.query._
+import com.couchbase.client.java.query.consistency.ScanConsistency
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.SimpleQuery
@@ -48,9 +49,7 @@ trait BucketApi {
     }
   }
 
-  def find[T](query: SimpleQuery[T])(implicit r: Reads[T]): Future[List[T]] = {
-
-    //{"$1":{"flags":33554432,"id":"u:rocco1","cas":1480962217402761200,"type":"json"},"default":{"name":"rocco","interests":["test"],"dob":1480962217391,"email":"eocco@test.com"}}
+  def find[T](query: SimpleQuery[T] , consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS)(implicit r: Reads[T]): Future[List[T]] = {
 
     def convert(row: AsyncN1qlQueryResult) = {
       observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
@@ -61,6 +60,7 @@ trait BucketApi {
     }
 
     val buildQuery: N1qlQuery = query.buildQuery
+    buildQuery.params().consistency(consistency)
     val executeQuery = for {
       observable <- toFuture(asyncBucket.query(buildQuery))
       results <- convert(observable)

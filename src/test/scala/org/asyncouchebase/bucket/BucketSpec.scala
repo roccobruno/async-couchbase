@@ -202,19 +202,19 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11).toString AND DateTime.now().toString))
+      val query = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
 
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 1
       results(0).name shouldBe "rocco2"
 
-      val query2 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22).toString AND DateTime.now().toString))
+      val query2 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22) AND DateTime.now()))
       val results2 = await(bucket.find[User](query2))
 
       results2.size shouldBe 2
 
-      val query3 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30).toString AND DateTime.now().minusYears(15).toString))
+      val query3 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30) AND DateTime.now().minusYears(15)))
       val results3 = await(bucket.find[User](query3))
 
       results3.size shouldBe 1

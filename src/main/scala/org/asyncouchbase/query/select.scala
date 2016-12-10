@@ -2,30 +2,34 @@ package org.asyncouchbase.query
 
 import com.couchbase.client.java.query.N1qlQuery
 import org.asyncouchbase.util.Reflection
+import org.joda.time.DateTime
 
-sealed trait WhereExpression
-sealed trait BinaryExpression extends WhereExpression
 import scala.reflect.runtime.universe._
 
+sealed trait WhereExpression
+sealed trait BinaryExpression[T] extends WhereExpression
 
-class Range(firstValue: String) {
 
-  def _firstValue = firstValue
-  var secondValue = ""
-  def AND (secondValue: String) = {
+class DateRange(firstValue: DateTime) extends Range[DateTime] {
+  override def toString: String = s"STR_TO_MILLIS('$firstValue') AND STR_TO_MILLIS('$secondValue')"
+}
+
+trait Range[T] {
+
+  var secondValue: T = _
+  def AND (secondValue: T) = {
     this.secondValue = secondValue
     this
   }
 
-  override def toString: String = s"STR_TO_MILLIS('$firstValue') AND STR_TO_MILLIS('$secondValue')"
 }
 
-class RangeExpression(fieldName: String) extends BinaryExpression {
+class RangeExpression[T](fieldName: String) extends BinaryExpression[T] {
 
   def name = fieldName
-  private var range : Option[Range]= None
+  private var range : Option[Range[T]]= None
 
-  def BETWEEN(range: Range) = {
+  def BETWEEN(range: Range[T]) = {
     this.range = Some(range)
     this
   }
@@ -33,7 +37,7 @@ class RangeExpression(fieldName: String) extends BinaryExpression {
   override def toString: String = s"$fieldName BETWEEN ${range.getOrElse("")}"
 }
 
-class INExpression(value: String) extends BinaryExpression {
+class INExpression[T](value: String) extends BinaryExpression[T] {
 
   def fieldValue = value
   private var fieldName = ""
@@ -46,19 +50,44 @@ class INExpression(value: String) extends BinaryExpression {
   override def toString: String = s"'$fieldValue' IN $fieldName"
 }
 
-class Expression(fieldName: String) extends BinaryExpression {
+ trait Expression[T] extends BinaryExpression[T] {
 
-  def name = fieldName
+  private var operator = "="
+  def _operator = operator
 
-  private var value = ""
+  var value: T
 
-  def ===(value: String) = {
+  def ===(value: T) = {
     this.value = value
     this
   }
 
+  def gt(value: T) = {
+    this.value = value
+    this.operator = ">"
+    this
+  }
 
-  override def toString: String = s"$name = '$value'"
+  def lt(value: T) = {
+    this.value = value
+    this.operator = "<"
+    this
+  }
+
+  def gte(value: T) = {
+    this.value = value
+    this.operator = "<="
+    this
+  }
+
+  def lte(value: T) = {
+    this.value = value
+    this.operator = ">="
+    this
+  }
+
+
+
 }
 
 class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
@@ -101,12 +130,37 @@ class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
 }
 
 
+class DateExpression(fieldName: String) extends Expression[DateTime] {
+
+  override var value: DateTime = _
+
+  override def toString: String = s"${fieldName} ${_operator} STR_TO_MILLIS('$value')"
+}
+
+class StringExpression(fieldName: String) extends Expression[String] {
+
+  override var value: String = _
+
+  override def toString: String = s"${fieldName} ${_operator} '$value'"
+}
+
+class IntExpression(fieldName: String) extends Expression[Int] {//TODO define other types
+
+  override var value: Int = _
+
+  override def toString: String = s"${fieldName} ${_operator} $value"
+
+
+}
+
 object Expression {
-  implicit def toExpression(fieldName: String) = new Expression(fieldName)
+  implicit def toExpression(fieldName: String) = new StringExpression(fieldName)
+  implicit def toDateExpression(fieldName: String) = new DateExpression(fieldName)
+  implicit def toNumberExpression(fieldName: String) = new IntExpression(fieldName)
   implicit def toINExpression(fieldValue: String) = new INExpression(fieldValue)
-  implicit def toRangeExpression(fieldValue: String) = new RangeExpression(fieldValue)
-  implicit def toRange(fieldValue: String) = new Range(fieldValue)
-  implicit def toExpressionTree(expression: Expression) = new ExpressionTree(expression)
+  implicit def toDateRangeExpression(fieldValue: String) = new RangeExpression[DateTime](fieldValue)
+  implicit def toDateRange(fieldValue: DateTime) = new DateRange(fieldValue)
+  implicit def toExpressionTree(expression: Expression[String]) = new ExpressionTree(expression)
 }
 
 sealed trait Query
@@ -144,7 +198,7 @@ class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQue
   def SELECT(selector: String) = {
 
     this.selector =   selector match {
-      case "*" => Reflection.getListFields[T]
+      case "*" => "*"
       case _ => selector.replace("id","meta().id")
     }
 
@@ -166,7 +220,7 @@ class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQue
 
   private def buildWhereClause(expression: Option[WhereExpression]): String = {
       expression.get match {
-        case ex: BinaryExpression => ex.toString
+        case ex: BinaryExpression[_] => ex.toString
         case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex._operator} ${buildWhereClause(ex._leftExpression)})"
       }
   }
@@ -178,7 +232,12 @@ class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQue
       case _ => s" WHERE ${buildWhereClause(expression)}"
     }
 
-    val statement = s"SELECT $selector FROM $bucketName${whereExp}"
+    def adjustSelector = selector match {
+      case "*" => s"$bucketName.*,meta().id"
+      case _=> selector
+    }
+
+    val statement = s"SELECT $adjustSelector FROM $bucketName${whereExp}"
     N1qlQuery.simple(statement)
 
   }

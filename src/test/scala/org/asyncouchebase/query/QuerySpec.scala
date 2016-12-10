@@ -1,8 +1,10 @@
 package org.asyncouchebase.query
 
-import org.asyncouchbase.example.User
+import org.asyncouchbase.example.{Token, User}
 import org.asyncouchbase.query.Expression._
 import org.asyncouchbase.query._
+import org.asyncouchbase.util.Reflection
+import org.joda.time.DateTime
 import util.Testing
 
 class QuerySpec extends Testing {
@@ -35,7 +37,7 @@ class QuerySpec extends Testing {
 
     "create the right N1SQL statement with two expression in OR" in {
 
-      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE  ("name" === "test" OR "name" === "test2")
+      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE  (("name" === "test") OR "name" === "test2")
 
       query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE (name = 'test' OR name = 'test2')"
 
@@ -78,18 +80,50 @@ class QuerySpec extends Testing {
 
     "create the right N1SQL statement with 'BETWEEN' operator expression" in {
 
-      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE  ("dob" BETWEEN ("2016-11-08T17:08:35.389Z" AND "2016-12-08T17:08:35.389Z"))
+      val from: DateTime = DateTime.now().withYear(2000).
+        withDayOfMonth(30).
+        withMonthOfYear(1).
+        withHourOfDay(22).
+        withMinuteOfHour(22).
+        withSecondOfMinute(22).
+        withMillisOfSecond(200)
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2016-11-08T17:08:35.389Z') AND STR_TO_MILLIS('2016-12-08T17:08:35.389Z')"
+      val date: DateTime = DateTime.now().withYear(2001).
+        withDayOfMonth(31).
+        withMonthOfYear(1).
+        withHourOfDay(22).
+        withMinuteOfHour(22).
+        withSecondOfMinute(22).
+        withMillisOfSecond(201)
+
+      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE  ("dob" BETWEEN (from AND date))
+
+      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z')"
 
     }
 
 
     "create the right N1SQL statement with 'BETWEEN' and 'AND operator expressions" in {
 
-      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE ("name" === "teste").AND("name" === "teste2").AND("dob" BETWEEN ("2016-11-08T17:08:35.389Z" AND "2016-12-08T17:08:35.389Z"))
+      val from: DateTime = DateTime.now().withYear(2000).
+        withDayOfMonth(30).
+        withMonthOfYear(1).
+        withHourOfDay(22).
+        withMinuteOfHour(22).
+        withSecondOfMinute(22).
+        withMillisOfSecond(200)
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2016-11-08T17:08:35.389Z') AND STR_TO_MILLIS('2016-12-08T17:08:35.389Z'))"
+      val date: DateTime = DateTime.now().withYear(2001).
+        withDayOfMonth(31).
+        withMonthOfYear(1).
+        withHourOfDay(22).
+        withMinuteOfHour(22).
+        withSecondOfMinute(22).
+        withMillisOfSecond(201)
+
+      val query = new SimpleQuery[User]() SELECT "name" FROM "default" WHERE ("name" === "teste").AND("name" === "teste2").AND("dob" BETWEEN (from AND date))
+
+      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z'))"
 
     }
 
@@ -104,10 +138,41 @@ class QuerySpec extends Testing {
 
       val query = new SimpleQuery[User]() SELECT "*" FROM "default"
 
-      query.buildQuery.statement().toString shouldBe "SELECT name,email,interests,dob,meta().id FROM default"
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default"
 
     }
 
+
+    "create the right N1SQL statement with > operator expression and all fields" in {
+      val query = new SimpleQuery[User]() SELECT "*" FROM "default" WHERE ("dob" gt "blahh")
+
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 'blahh'"
+
+    }
+
+    "create the right N1SQL statement with > operator expression with field of type Date" in {
+      val date: DateTime = DateTime.now().withYear(2000).
+        withDayOfMonth(30).
+        withMonthOfYear(1).
+        withHourOfDay(22).
+        withMinuteOfHour(22).
+        withSecondOfMinute(22).
+        withMillisOfSecond(200)
+      val query = new SimpleQuery[User]() SELECT "*" FROM "default" WHERE ("dob" gt date)
+
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > STR_TO_MILLIS('2000-01-30T22:22:22.200Z')"
+
+    }
+
+    "create the right N1SQL statement with > operator expression with Number field type" in {
+
+      val query = new SimpleQuery[Token]() SELECT "*" FROM "default" WHERE ("dob" gt 3 )
+
+
+      println(Reflection.getListFields[Token])
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 3"
+
+    }
 
   }
 
