@@ -14,6 +14,10 @@ class DateRange(firstValue: DateTime) extends Range[DateTime] {
   override def toString: String = s"STR_TO_MILLIS('$firstValue') AND STR_TO_MILLIS('$secondValue')"
 }
 
+class IntRange(firstValue: Int) extends Range[Int] {
+  override def toString: String = s"$firstValue AND $secondValue"
+}
+
 trait Range[T] {
 
   var secondValue: T = _
@@ -153,13 +157,26 @@ class IntExpression(fieldName: String) extends Expression[Int] {//TODO define ot
 
 }
 
+class BooleanExpression (fieldName: String) extends Expression[Boolean] {//TODO define other types
+
+  override var value: Boolean = _
+
+  override def toString: String = s"${fieldName} ${_operator} $value"
+
+
+}
+
+
 object Expression {
   implicit def toExpression(fieldName: String) = new StringExpression(fieldName)
+  implicit def toBooleanExpression(fieldName: String) = new BooleanExpression(fieldName)
   implicit def toDateExpression(fieldName: String) = new DateExpression(fieldName)
   implicit def toNumberExpression(fieldName: String) = new IntExpression(fieldName)
   implicit def toINExpression(fieldValue: String) = new INExpression(fieldValue)
   implicit def toDateRangeExpression(fieldValue: String) = new RangeExpression[DateTime](fieldValue)
+  implicit def toIntRangeExpression(fieldValue: String) = new RangeExpression[Int](fieldValue)
   implicit def toDateRange(fieldValue: DateTime) = new DateRange(fieldValue)
+  implicit def toIntRange(fieldValue: Int) = new IntRange(fieldValue)
   implicit def toExpressionTree(expression: Expression[String]) = new ExpressionTree(expression)
 }
 

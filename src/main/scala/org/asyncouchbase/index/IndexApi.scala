@@ -103,6 +103,7 @@ trait IndexApi extends BucketApi {
     for{
 
       indexes <- findIndexes()
+      if(indexes.nonEmpty)
       res <- deleteIndexes(indexes)
     } yield res
   }

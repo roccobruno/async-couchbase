@@ -3,7 +3,6 @@ package org.asyncouchebase.query
 import org.asyncouchbase.example.{Token, User}
 import org.asyncouchbase.query.Expression._
 import org.asyncouchbase.query._
-import org.asyncouchbase.util.Reflection
 import org.joda.time.DateTime
 import util.Testing
 
@@ -168,9 +167,23 @@ class QuerySpec extends Testing {
 
       val query = new SimpleQuery[Token]() SELECT "*" FROM "default" WHERE ("dob" gt 3 )
 
-
-      println(Reflection.getListFields[Token])
       query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 3"
+
+    }
+
+    "create the right N1SQL statement with BETWEEN operator expression with Int field type" in {
+
+      val query = new SimpleQuery[Token]() SELECT "*" FROM "default" WHERE ("count" BETWEEN (0 AND 2))
+
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE count BETWEEN 0 AND 2"
+
+    }
+
+    "create the right N1SQL statement with Boolean Expression" in {
+
+      val query = new SimpleQuery[Token]() SELECT "*" FROM "default" WHERE ("recurring" === false)
+
+      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE recurring = false"
 
     }
 

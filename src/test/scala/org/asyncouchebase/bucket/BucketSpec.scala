@@ -66,6 +66,7 @@ class BucketSpec extends Testing {
 
   override protected def afterAll(): Unit = {
 //    await(bucket.dropAllIndexes())
+    bucket.asyncBucket.close()
     cluster.disconnect()
   }
 
