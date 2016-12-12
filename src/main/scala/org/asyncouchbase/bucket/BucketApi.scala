@@ -16,18 +16,21 @@ import rx.lang.scala.JavaConversions.toScalaObservable
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.reflect.runtime.universe._
 
 trait BucketApi {
  val logger =  CouchbaseLoggerFactory.getInstance(classOf[BucketApi])
 
-   def asyncBucket: AsyncBucket
+  implicit val validateQuery = false
+
+  def asyncBucket: AsyncBucket
 
 
   def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
     val ent = fromJson(r.writes(entity).toString())
     toFuture(asyncBucket.upsert(create(key, ent), persistTo, replicateTo)) map {
       _ =>
-        OpsResult(isSuccess = true, "")
+        OpsResult(isSuccess = true)
     } recover {
       case ex: Throwable => {
         logger.warn(s"Error in upserting document with id= $key. Error message - ${ex.getMessage}")
@@ -39,7 +42,7 @@ trait BucketApi {
 
   def delete[T](key: String, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
     toFuture(asyncBucket.remove(key, persistTo, replicateTo)) map {
-      _ => OpsResult(isSuccess = true, "")
+      _ => OpsResult(isSuccess = true)
     } recover {
       case ex: Throwable => {
         logger.warn(s"Error in deleting document with id= $key. Error message - ${ex.getMessage}")
@@ -49,7 +52,7 @@ trait BucketApi {
     }
   }
 
-  def find[T](query: SimpleQuery[T] , consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS)(implicit r: Reads[T]): Future[List[T]] = {
+  def find[T: TypeTag](query: SimpleQuery, consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS)(implicit r: Reads[T], validateQuery: Boolean): Future[List[T]] = {
 
     def convert(row: AsyncN1qlQueryResult) = {
       observable2Enumerator[AsyncN1qlQueryRow](row.rows()) run Iteratee.fold(List.empty[AsyncN1qlQueryRow]) { (l, e) => e :: l } map {
@@ -58,6 +61,10 @@ trait BucketApi {
         s => s map (ss => r.reads(parse(ss.value().toString)).get)
       }
     }
+
+
+    if(validateQuery)
+    query.validateSelector[T]
 
     val buildQuery: N1qlQuery = query.buildQuery
     buildQuery.params().consistency(consistency)
@@ -91,7 +98,7 @@ trait BucketApi {
   def setValue[V](key: String, fieldName: String, fieldValue: V): Future[OpsResult] = {
 
     toFuture(asyncBucket.mapAdd(key, fieldName, fieldValue)) map {
-      _ => OpsResult(isSuccess = true, "")
+      _ => OpsResult(isSuccess = true)
     } recover {
       case ex: Throwable => {
         logger.warn(s"Error in setting value in document with id= $key. Error message - ${ex.getMessage}")

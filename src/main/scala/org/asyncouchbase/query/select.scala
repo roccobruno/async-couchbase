@@ -178,15 +178,16 @@ object Expression {
   implicit def toDateRange(fieldValue: DateTime) = new DateRange(fieldValue)
   implicit def toIntRange(fieldValue: Int) = new IntRange(fieldValue)
   implicit def toExpressionTree(expression: Expression[String]) = new ExpressionTree(expression)
+
 }
 
 sealed trait Query
 
-abstract class AbstractQuery[T: TypeTag] extends Query {
+abstract class AbstractQuery extends Query {
 
-  protected var selector: String = "*"
+  var selector: String
 
-  protected def validateSelector = {
+  def validateSelector[T: TypeTag] = {
     selector match {
       case "*" =>
       case _ => {
@@ -203,26 +204,30 @@ abstract class AbstractQuery[T: TypeTag] extends Query {
 
 
 
+object SELECT extends AbstractQuery {
 
-class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQuery[T] {
+  def apply(selector: String ) = {
+
+    this.selector = selector match {
+      case "*" => "*"
+      case _ => selector.replace("id", "meta().id")
+    }
+    new SimpleQuery(ss = this.selector)
+  }
+
+  override var selector: String = "*"
+}
+
+
+class SimpleQuery(validationOn : Boolean = true, ss: String = "*") extends AbstractQuery {
+
+
 
 
   private var bucketName = ""
   private var expression: Option[WhereExpression] = None
 
   def _bucketName = bucketName
-
-  def SELECT(selector: String) = {
-
-    this.selector =   selector match {
-      case "*" => "*"
-      case _ => selector.replace("id","meta().id")
-    }
-
-    if(validationOn) validateSelector
-
-    this
-  }
 
   def FROM(tableName: String) = {
     this.bucketName = tableName
@@ -259,4 +264,7 @@ class SimpleQuery[T: TypeTag](validationOn : Boolean = true) extends AbstractQue
 
   }
 
+  override def toString: String = buildQuery.statement().toString
+
+  override var selector: String = ss
 }

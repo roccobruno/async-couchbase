@@ -7,7 +7,7 @@ import com.couchbase.client.java.query.dsl.path.index.IndexType
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.model.{CBIndex, OpsResult}
 import org.asyncouchbase.query.Expression._
-import org.asyncouchbase.query.SimpleQuery
+import org.asyncouchbase.query.SELECT
 import org.asyncouchbase.util.Converters.toFuture
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -68,7 +68,7 @@ trait IndexApi extends BucketApi {
 
 
   def findIndexes(): Future[List[CBIndex]] = {
-    val query: SimpleQuery[CBIndex] =  new SimpleQuery[CBIndex](validationOn = false) SELECT "indexes.*" FROM "system:indexes" WHERE "keyspace_id" === asyncBucket.name()
+    val query =  SELECT ("indexes.*") FROM "system:indexes" WHERE ("keyspace_id" === asyncBucket.name())
     find[CBIndex](query)
   }
 

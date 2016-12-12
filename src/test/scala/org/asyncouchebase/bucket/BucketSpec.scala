@@ -5,7 +5,7 @@ import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.query.Expression._
-import org.asyncouchbase.query.SimpleQuery
+import org.asyncouchbase.query.SELECT
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import util.Testing
@@ -19,7 +19,7 @@ import scala.concurrent.Future
   IT needs a Couchbase instance running in localhost:8091 with default bucket
  */
 class BucketSpec extends Testing {
-
+  implicit val validateQuery = false
 
   case class ID(id: String)
   object ID {
@@ -32,7 +32,7 @@ class BucketSpec extends Testing {
 
   def deleteAllDocs: Future[Unit] = {
 
-    val query = new SimpleQuery[ID]() SELECT "*" FROM "default"
+    val query = SELECT("*") FROM "default"
 
     def deleteAll(records: Seq[ID]): Unit = {
       records.foreach { rec:ID =>
@@ -61,7 +61,7 @@ class BucketSpec extends Testing {
   }
 
 
-  val cluster = CouchbaseCluster.create("localhost")
+  val cluster = CouchbaseCluster.create()
   cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
 
   override protected def afterAll(): Unit = {
@@ -116,7 +116,7 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = new SimpleQuery[User]() SELECT "*" FROM "default" WHERE ("test" IN "interests")
+      val query =  SELECT("*") FROM "default" WHERE ("test" IN "interests")
 
       await(bucket.find[User](query))
       val results = await(bucket.find[User](query))
@@ -203,19 +203,19 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
+      val query =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
 
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 1
       results(0).name shouldBe "rocco2"
 
-      val query2 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22) AND DateTime.now()))
+      val query2 =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22) AND DateTime.now()))
       val results2 = await(bucket.find[User](query2))
 
       results2.size shouldBe 2
 
-      val query3 = new SimpleQuery[User]() SELECT "name, email, interests, dob, id" FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30) AND DateTime.now().minusYears(15)))
+      val query3 =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30) AND DateTime.now().minusYears(15)))
       val results3 = await(bucket.find[User](query3))
 
       results3.size shouldBe 1
@@ -227,6 +227,15 @@ class BucketSpec extends Testing {
 
     }
 
+
+    "throw an IllegalArgumentException in case of wrong selector" in {
+      intercept[IllegalArgumentException] {
+        val query = SELECT("test") FROM "default"
+
+        implicit val validateQuery = true
+        bucket.find[User](query)
+      }
+    }
 
   }
 
