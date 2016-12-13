@@ -13,7 +13,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("name") FROM "default"
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default"
+      query.toString shouldBe "SELECT name FROM default"
 
     }
 
@@ -21,7 +21,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name, email, id") FROM "default"
 
-      query.buildQuery.statement().toString shouldBe "SELECT name, email, meta().id FROM default"
+      query.toString shouldBe "SELECT name, email, meta().id FROM default"
 
     }
 
@@ -29,7 +29,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE "name" === "test"
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE name = 'test'"
+      query.toString shouldBe "SELECT name FROM default WHERE name = 'test'"
 
     }
 
@@ -37,7 +37,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  (("name" === "test") OR "name" === "test2")
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE (name = 'test' OR name = 'test2')"
+      query.toString shouldBe "SELECT name FROM default WHERE (name = 'test' OR name = 'test2')"
 
     }
 
@@ -45,7 +45,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("name" === "test" AND "name" === "test2")
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE (name = 'test' AND name = 'test2')"
+      query.toString shouldBe "SELECT name FROM default WHERE (name = 'test' AND name = 'test2')"
 
     }
 
@@ -53,7 +53,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("name" === "test" AND "name" === "test2" AND "name" === "test3")
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'test' AND name = 'test2') AND name = 'test3')"
+      query.toString shouldBe "SELECT name FROM default WHERE ((name = 'test' AND name = 'test2') AND name = 'test3')"
 
     }
 
@@ -62,7 +62,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  (("name" === "test" AND "surname" === "white99") OR ("name" === "test2" AND "surname" === "white"))
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'test' AND surname = 'white99') OR (name = 'test2' AND surname = 'white'))"
+      query.toString shouldBe "SELECT name FROM default WHERE ((name = 'test' AND surname = 'white99') OR (name = 'test2' AND surname = 'white'))"
 
     }
 
@@ -71,7 +71,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("test" IN "interest")
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE 'test' IN interest"
+      query.toString shouldBe "SELECT name FROM default WHERE test IN interest"
 
     }
 
@@ -96,7 +96,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("dob" BETWEEN (from AND date))
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z')"
+      query.toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z')"
 
     }
 
@@ -121,7 +121,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE ("name" === "teste").AND("name" === "teste2").AND("dob" BETWEEN (from AND date))
 
-      query.buildQuery.statement().toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z'))"
+      query.toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z'))"
 
     }
 
@@ -132,7 +132,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default"
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default"
 
     }
 
@@ -140,7 +140,7 @@ class QuerySpec extends Testing {
     "create the right N1SQL statement with > operator expression and all fields" in {
       val query = SELECT("*") FROM "default" WHERE ("dob" gt "blahh")
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 'blahh'"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 'blahh'"
 
     }
 
@@ -154,7 +154,7 @@ class QuerySpec extends Testing {
         withMillisOfSecond(200)
       val query = SELECT("*") FROM "default" WHERE ("dob" gt date)
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > STR_TO_MILLIS('2000-01-30T22:22:22.200Z')"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > STR_TO_MILLIS('2000-01-30T22:22:22.200Z')"
 
     }
 
@@ -162,7 +162,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default" WHERE ("dob" gt 3 )
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 3"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > 3"
 
     }
 
@@ -170,7 +170,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default" WHERE ("count" BETWEEN (0 AND 2))
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE count BETWEEN 0 AND 2"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE count BETWEEN 0 AND 2"
 
     }
 
@@ -178,9 +178,18 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default" WHERE ("recurring" === false)
 
-      query.buildQuery.statement().toString shouldBe "SELECT default.*,meta().id FROM default WHERE recurring = false"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE recurring = false"
 
     }
+
+    "create the right N1SQL statement with Array Expression" in {
+
+      val query = SELECT("*") FROM "default" WHERE ( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
+
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ANY line IN 'journey.meansOfTransportation.tubeLines' SATISFIES line.id IN ['piccadilly', 'northern'] END"
+
+    }
+
 
   }
 

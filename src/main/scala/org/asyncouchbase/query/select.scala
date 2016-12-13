@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 import scala.reflect.runtime.universe._
 
 sealed trait WhereExpression
-sealed trait BinaryExpression[T] extends WhereExpression
+sealed trait BinaryExpression extends WhereExpression
 
 
 class DateRange(firstValue: DateTime) extends Range[DateTime] {
@@ -28,7 +28,7 @@ trait Range[T] {
 
 }
 
-class RangeExpression[T](fieldName: String) extends BinaryExpression[T] {
+class RangeExpression[T](fieldName: String) extends BinaryExpression {
 
   def name = fieldName
   private var range : Option[Range[T]]= None
@@ -41,7 +41,7 @@ class RangeExpression[T](fieldName: String) extends BinaryExpression[T] {
   override def toString: String = s"$fieldName BETWEEN ${range.getOrElse("")}"
 }
 
-class INExpression[T](value: String) extends BinaryExpression[T] {
+class INExpression[T](value: String) extends BinaryExpression {
 
   def fieldValue = value
   private var fieldName = ""
@@ -51,10 +51,10 @@ class INExpression[T](value: String) extends BinaryExpression[T] {
     this
   }
 
-  override def toString: String = s"'$fieldValue' IN $fieldName"
+  override def toString: String = s"$fieldValue IN $fieldName"
 }
 
- trait Expression[T] extends BinaryExpression[T] {
+ trait Expression[T] extends BinaryExpression {
 
   private var operator = "="
   def _operator = operator
@@ -133,6 +133,31 @@ class ExpressionTree(rightExpression: WhereExpression) extends WhereExpression {
   override def toString: String = s"${expression} $operator ${leftExpression}"
 }
 
+trait ArrayExpression extends WhereExpression
+
+
+case class ANY(fieldName: String) extends ArrayExpression {
+
+  private var arrayName = ""
+  private var condition: Option[INExpression[String]] = None
+
+
+  def IN(arrayName: String) = {
+    this.arrayName = arrayName
+    this
+  }
+
+  def SATISFIES(condition: INExpression[String]) = {
+    this.condition = Some(condition)
+    this
+  }
+
+  def END() ={
+    this
+  }
+
+  override def toString: String = s"ANY $fieldName IN '$arrayName' SATISFIES ${condition.getOrElse(throw new IllegalArgumentException("SATISFIES requires a IN expression!"))} END"
+}
 
 class DateExpression(fieldName: String) extends Expression[DateTime] {
 
@@ -172,7 +197,7 @@ object Expression {
   implicit def toBooleanExpression(fieldName: String) = new BooleanExpression(fieldName)
   implicit def toDateExpression(fieldName: String) = new DateExpression(fieldName)
   implicit def toNumberExpression(fieldName: String) = new IntExpression(fieldName)
-  implicit def toINExpression(fieldValue: String) = new INExpression(fieldValue)
+  implicit def toINExpression(fieldValue: String) = new INExpression[String](fieldValue)
   implicit def toDateRangeExpression(fieldValue: String) = new RangeExpression[DateTime](fieldValue)
   implicit def toIntRangeExpression(fieldValue: String) = new RangeExpression[Int](fieldValue)
   implicit def toDateRange(fieldValue: DateTime) = new DateRange(fieldValue)
@@ -242,7 +267,8 @@ class SimpleQuery(validationOn : Boolean = true, ss: String = "*") extends Abstr
 
   private def buildWhereClause(expression: Option[WhereExpression]): String = {
       expression.get match {
-        case ex: BinaryExpression[_] => ex.toString
+        case ex: ANY => ex.toString
+        case ex: BinaryExpression => ex.toString
         case ex: ExpressionTree => s"(${buildWhereClause(ex.expression)} ${ex._operator} ${buildWhereClause(ex._leftExpression)})"
       }
   }
