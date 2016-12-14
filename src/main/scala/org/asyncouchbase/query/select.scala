@@ -8,6 +8,7 @@ import scala.reflect.runtime.universe._
 
 sealed trait WhereExpression
 sealed trait BinaryExpression extends WhereExpression
+sealed trait UnaryExpression extends WhereExpression
 
 
 class DateRange(firstValue: DateTime) extends Range[DateTime] {
@@ -39,6 +40,15 @@ class RangeExpression[T](fieldName: String) extends BinaryExpression {
   }
 
   override def toString: String = s"$fieldName BETWEEN ${range.getOrElse("")}"
+}
+
+class NOTNULLExpression[T](fieldName: String) extends UnaryExpression {
+
+  def IS_NOT_NULL() = {
+    this
+  }
+
+  override def toString: String = s"$fieldName IS NOT NULL"
 }
 
 class INExpression[T](value: String) extends BinaryExpression {
@@ -139,7 +149,7 @@ trait ArrayExpression extends WhereExpression
 case class ANY(fieldName: String) extends ArrayExpression {
 
   private var arrayName = ""
-  private var condition: Option[INExpression[String]] = None
+  private var condition: Option[WhereExpression] = None
 
 
   def IN(arrayName: String) = {
@@ -148,6 +158,11 @@ case class ANY(fieldName: String) extends ArrayExpression {
   }
 
   def SATISFIES(condition: INExpression[String]) = {
+    this.condition = Some(condition)
+    this
+  }
+
+  def SATISFIES(condition: UnaryExpression) = {
     this.condition = Some(condition)
     this
   }
@@ -193,6 +208,7 @@ class BooleanExpression (fieldName: String) extends Expression[Boolean] {//TODO 
 
 
 object Expression {
+  implicit def toNOTNULLExpression(fieldName: String) = new NOTNULLExpression(fieldName)
   implicit def toExpression(fieldName: String) = new StringExpression(fieldName)
   implicit def toBooleanExpression(fieldName: String) = new BooleanExpression(fieldName)
   implicit def toDateExpression(fieldName: String) = new DateExpression(fieldName)

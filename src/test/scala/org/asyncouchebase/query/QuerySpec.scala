@@ -199,6 +199,13 @@ class QuerySpec extends Testing {
 
     }
 
+    "create the right right N1SQL statement with IS NOT NULL expression" in {
+
+      val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL) END)
+
+      query.toString shouldBe "SELECT meta().id FROM tube WHERE ANY line IN lineStatuses SATISFIES line.disruption IS NOT NULL END"
+    }
+
   }
 
 
