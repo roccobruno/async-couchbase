@@ -156,7 +156,7 @@ case class ANY(fieldName: String) extends ArrayExpression {
     this
   }
 
-  override def toString: String = s"ANY $fieldName IN '$arrayName' SATISFIES ${condition.getOrElse(throw new IllegalArgumentException("SATISFIES requires a IN expression!"))} END"
+  override def toString: String = s"ANY $fieldName IN $arrayName SATISFIES ${condition.getOrElse(throw new IllegalArgumentException("SATISFIES requires a IN expression!"))} END"
 }
 
 class DateExpression(fieldName: String) extends Expression[DateTime] {

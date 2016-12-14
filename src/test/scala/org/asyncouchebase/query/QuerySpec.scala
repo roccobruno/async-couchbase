@@ -186,7 +186,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default" WHERE ( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
 
-      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ANY line IN 'journey.meansOfTransportation.tubeLines' SATISFIES line.id IN ['piccadilly', 'northern'] END"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ANY line IN journey.meansOfTransportation.tubeLines SATISFIES line.id IN ['piccadilly', 'northern'] END"
 
     }
 
@@ -195,7 +195,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT("*") FROM "default" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (1700 AND 1800))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
 
-      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ((docType = 'Job' AND journey.startsAt.time BETWEEN 1700 AND 1800) AND ANY line IN 'journey.meansOfTransportation.tubeLines' SATISFIES line.id IN ['piccadilly', 'northern'] END)"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ((docType = 'Job' AND journey.startsAt.time BETWEEN 1700 AND 1800) AND ANY line IN journey.meansOfTransportation.tubeLines SATISFIES line.id IN ['piccadilly', 'northern'] END)"
 
     }
 
