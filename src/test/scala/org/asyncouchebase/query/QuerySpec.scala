@@ -190,6 +190,14 @@ class QuerySpec extends Testing {
 
     }
 
+    //
+    "create the right N1SQL statement with Array Expression and RANGE expression" in {
+
+      val query = SELECT("*") FROM "default" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (1700 AND 1800))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
+
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ((docType = 'Job' AND journey.startsAt.time BETWEEN 1700 AND 1800) AND ANY line IN 'journey.meansOfTransportation.tubeLines' SATISFIES line.id IN ['piccadilly', 'northern'] END)"
+
+    }
 
   }
 
