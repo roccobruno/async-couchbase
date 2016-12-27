@@ -106,6 +106,21 @@ trait BucketApi {
         OpsResult(isSuccess = false, ex.getMessage)
       }
     }
+  }
 
+
+  def exist[T](key: String): Future[Boolean] = {
+
+    val res: Future[java.lang.Boolean] = toFuture[java.lang.Boolean](asyncBucket exists key) recover {
+      case ex: Throwable => {
+        logger.warn(s"Error in setting value in document with id= $key. Error message - ${ex.getMessage}")
+        logger.debug(s"Error of type ${ex.getCause}")
+        false
+      }
+    }
+    res map {
+      case java.lang.Boolean.TRUE => true
+      case _ => false
+    }
   }
 }

@@ -20,7 +20,7 @@ class IndexApiSpec  extends Testing {
 
 
   override protected def beforeAll(): Unit = {
-//    await(bucket.dropAllIndexes())
+    await(bucket.dropAllIndexes())
   }
 
   override protected def afterAll(): Unit = {
@@ -41,7 +41,7 @@ class IndexApiSpec  extends Testing {
     }
 
     "find created indexes" in new Setup {
-      await(bucket.createPrimaryIndex())
+      await(bucket.createPrimaryIndex(deferBuild = false))
       val result = await(bucket.findIndexes())
       result.size shouldBe 2
     }

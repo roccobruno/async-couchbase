@@ -6,7 +6,7 @@ import com.couchbase.client.java.query.dsl.Expression._
 import com.couchbase.client.java.query.dsl.path.index.IndexType
 import org.asyncouchbase.bucket.BucketApi
 import org.asyncouchbase.model.{CBIndex, OpsResult}
-import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.SELECT
 import org.asyncouchbase.util.Converters.toFuture
 
@@ -74,10 +74,7 @@ trait IndexApi extends BucketApi {
 
   def dropIndex(indexName: String): Future[OpsResult] = {
     val query: SimpleN1qlQuery = simple(Index.dropIndex(asyncBucket.name(), indexName))
-    toFuture(asyncBucket.query(query)) map {
-      result =>
-        OpsResult(isSuccess = result.parseSuccess()) //TODO replace to use finalSuccess
-    }
+    executeOp(asyncBucket.query(query))
   }
 
   def createPrimaryIndex(deferBuild: Boolean = true): Future[OpsResult] = {

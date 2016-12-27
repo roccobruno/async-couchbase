@@ -4,7 +4,7 @@ import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
-import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.SELECT
 import org.joda.time.DateTime
 import play.api.libs.json.Json
@@ -117,8 +117,6 @@ class BucketSpec extends Testing {
       Thread.sleep(5000)
 
       val query =  SELECT("*") FROM "default" WHERE ("test" IN "interests")
-
-      await(bucket.find[User](query))
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
@@ -201,8 +199,6 @@ class BucketSpec extends Testing {
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
       await(bucket.upsert[User](docId+"2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
 
-      Thread.sleep(5000)
-
       val query =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
 
       val results = await(bucket.find[User](query))
@@ -236,6 +232,23 @@ class BucketSpec extends Testing {
         bucket.find[User](query)
       }
     }
+
+    "check whether a document exists" in {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val res = await(bucket.exist(docId))
+      res shouldBe true
+
+      await(bucket.delete[User](docId))
+    }
+
+    "check whether a document does not exist" in {
+      val docId: String = "u:test"
+      val res = await(bucket.exist(docId))
+      res shouldBe false
+    }
+
 
   }
 

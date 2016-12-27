@@ -1,6 +1,6 @@
 package org.asyncouchebase.query
 
-import org.asyncouchbase.query.Expression._
+import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query._
 import org.joda.time.DateTime
 import util.Testing
@@ -35,7 +35,7 @@ class QuerySpec extends Testing {
 
     "create the right N1SQL statement with two expression in OR" in {
 
-      val query = SELECT( "name") FROM "default" WHERE  (("name" === "test") OR "name" === "test2")
+      val query = SELECT( "name") FROM "default" WHERE  ("name" === "test" OR "name" === "test2")
 
       query.toString shouldBe "SELECT name FROM default WHERE (name = 'test' OR name = 'test2')"
 
@@ -71,7 +71,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("test" IN "interest")
 
-      query.toString shouldBe "SELECT name FROM default WHERE test IN interest"
+      query.toString shouldBe "SELECT name FROM default WHERE 'test' IN interest"
 
     }
 
@@ -184,7 +184,7 @@ class QuerySpec extends Testing {
 
     "create the right N1SQL statement with Array Expression" in {
 
-      val query = SELECT("*") FROM "default" WHERE ( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
+      val query = SELECT("*") FROM "default" WHERE ( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']"))
 
       query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ANY line IN journey.meansOfTransportation.tubeLines SATISFIES line.id IN ['piccadilly', 'northern'] END"
 
@@ -193,7 +193,7 @@ class QuerySpec extends Testing {
     //
     "create the right N1SQL statement with Array Expression and RANGE expression" in {
 
-      val query = SELECT("*") FROM "default" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (1700 AND 1800))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']") END)
+      val query = SELECT("*") FROM "default" WHERE (("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (1700 AND 1800))).AND( ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']"))
 
       query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE ((docType = 'Job' AND journey.startsAt.time BETWEEN 1700 AND 1800) AND ANY line IN journey.meansOfTransportation.tubeLines SATISFIES line.id IN ['piccadilly', 'northern'] END)"
 
@@ -201,7 +201,7 @@ class QuerySpec extends Testing {
 
     "create the right right N1SQL statement with IS NOT NULL expression" in {
 
-      val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL) END)
+      val query  = SELECT("id") FROM "tube" WHERE (ANY("line") IN "lineStatuses" SATISFIES ("line.disruption" IS_NOT_NULL))
 
       query.toString shouldBe "SELECT meta().id FROM tube WHERE ANY line IN lineStatuses SATISFIES line.disruption IS NOT NULL END"
     }
