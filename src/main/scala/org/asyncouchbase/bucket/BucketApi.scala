@@ -26,31 +26,26 @@ trait BucketApi {
   def asyncBucket: AsyncBucket
 
 
+  def errorHandling(operation: String, key: String): PartialFunction[Throwable, OpsResult] = {
+    case ex: Throwable => {
+      logger.warn(s"Error in $operation document with id= $key. Error message - ${ex.getMessage}")
+      logger.debug(s"Error of type ${ex.getCause}")
+      OpsResult(isSuccess = false, ex.getMessage)
+    }
+  }
 
   def upsert[T](key: String, entity: T, expiry: Int = 0, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
     val ent = fromJson(r.writes(entity).toString())
     toFuture(asyncBucket.upsert(create(key, expiry, ent), persistTo, replicateTo)) map {
       _ =>
         OpsResult(isSuccess = true)
-    } recover {
-      case ex: Throwable => {
-        logger.warn(s"Error in upserting document with id= $key. Error message - ${ex.getMessage}")
-        logger.debug(s"Error of type ${ex.getCause}")
-        OpsResult(isSuccess = false, ex.getMessage)
-      }
-    }
+    } recover errorHandling("upserting", key)
   }
 
   def delete[T](key: String, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
     toFuture(asyncBucket.remove(key, persistTo, replicateTo)) map {
       _ => OpsResult(isSuccess = true)
-    } recover {
-      case ex: Throwable => {
-        logger.warn(s"Error in deleting document with id= $key. Error message - ${ex.getMessage}")
-        logger.debug(s"Error of type ${ex.getCause}")
-        OpsResult(isSuccess = false, ex.getMessage) //TODO catch the right exception and transform
-      }
-    }
+    } recover errorHandling("deleting", key)
   }
 
   def find[T: TypeTag](query: SimpleQuery, consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS)(implicit r: Reads[T], validateQuery: Boolean): Future[List[T]] = {
@@ -62,7 +57,6 @@ trait BucketApi {
         s => s map (ss => r.reads(parse(ss.value().toString)).get)
       }
     }
-
 
     if(validateQuery)
     query.validateSelector[T]
@@ -100,13 +94,7 @@ trait BucketApi {
 
     toFuture(asyncBucket.mapAdd(key, fieldName, fieldValue)) map {
       _ => OpsResult(isSuccess = true)
-    } recover {
-      case ex: Throwable => {
-        logger.warn(s"Error in setting value in document with id= $key. Error message - ${ex.getMessage}")
-        logger.debug(s"Error of type ${ex.getCause}")
-        OpsResult(isSuccess = false, ex.getMessage)
-      }
-    }
+    } recover errorHandling("setting value", key)
   }
 
 
