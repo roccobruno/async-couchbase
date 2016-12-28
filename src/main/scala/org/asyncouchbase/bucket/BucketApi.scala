@@ -26,9 +26,10 @@ trait BucketApi {
   def asyncBucket: AsyncBucket
 
 
-  def upsert[T](key: String, entity: T, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
+
+  def upsert[T](key: String, entity: T, expiry: Int = 0, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
     val ent = fromJson(r.writes(entity).toString())
-    toFuture(asyncBucket.upsert(create(key, ent), persistTo, replicateTo)) map {
+    toFuture(asyncBucket.upsert(create(key, expiry, ent), persistTo, replicateTo)) map {
       _ =>
         OpsResult(isSuccess = true)
     } recover {

@@ -14,7 +14,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 
-
 /*
   IT needs a Couchbase instance running in localhost:8091 with default bucket
  */
@@ -22,6 +21,7 @@ class BucketSpec extends Testing {
   implicit val validateQuery = false
 
   case class ID(id: String)
+
   object ID {
     implicit val format = Json.format[ID]
   }
@@ -35,7 +35,7 @@ class BucketSpec extends Testing {
     val query = SELECT("*") FROM "default"
 
     def deleteAll(records: Seq[ID]): Unit = {
-      records.foreach { rec:ID =>
+      records.foreach { rec: ID =>
         bucket.delete(rec.id)
       }
     }
@@ -49,15 +49,19 @@ class BucketSpec extends Testing {
   trait Setup {
 
 
-
-
-
   }
 
   override protected def beforeAll(): Unit = {
+
+    def isTherePrimaryIndex = await(bucket.findIndexes()).filter(_.name == "#primary").size > 0
+
+
+    if (isTherePrimaryIndex)
+      await(bucket.buildPrimaryIndex())
+    else
+      await(bucket.createPrimaryIndex(deferBuild = false))
+
     await(deleteAllDocs)
-    await(bucket.dropAllIndexes())
-    await(bucket.createPrimaryIndex(deferBuild = false))
   }
 
 
@@ -65,12 +69,9 @@ class BucketSpec extends Testing {
   cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
 
   override protected def afterAll(): Unit = {
-//    await(bucket.dropAllIndexes())
     bucket.asyncBucket.close()
     cluster.disconnect()
   }
-
-
 
 
   "a Bucket" should {
@@ -116,7 +117,7 @@ class BucketSpec extends Testing {
 
       Thread.sleep(5000)
 
-      val query =  SELECT("*") FROM "default" WHERE ("test" IN "interests")
+      val query = SELECT("*") FROM "default" WHERE ("test" IN "interests")
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 2
@@ -197,28 +198,28 @@ class BucketSpec extends Testing {
 
       private val docId: String = "u:testdate"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
-      await(bucket.upsert[User](docId+"2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
+      await(bucket.upsert[User](docId + "2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
 
-      val query =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
+      val query = SELECT("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(11) AND DateTime.now()))
 
       val results = await(bucket.find[User](query))
 
       results.size shouldBe 1
       results(0).name shouldBe "rocco2"
 
-      val query2 =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22) AND DateTime.now()))
+      val query2 = SELECT("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(22) AND DateTime.now()))
       val results2 = await(bucket.find[User](query2))
 
       results2.size shouldBe 2
 
-      val query3 =  SELECT ("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30) AND DateTime.now().minusYears(15)))
+      val query3 = SELECT("name, email, interests, dob, id") FROM "default" WHERE ("dob" BETWEEN (DateTime.now().minusYears(30) AND DateTime.now().minusYears(15)))
       val results3 = await(bucket.find[User](query3))
 
       results3.size shouldBe 1
       results3(0).name shouldBe "rocco"
 
       await(bucket.delete[User](docId))
-      await(bucket.delete[User](docId+"2"))
+      await(bucket.delete[User](docId + "2"))
 
 
     }
@@ -249,6 +250,14 @@ class BucketSpec extends Testing {
       res shouldBe false
     }
 
+
+    "expiry a doc" in {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test")), 1))
+      Thread.sleep(2000)
+      val res = await(bucket.get[User](docId))
+      res.isDefined shouldBe false
+    }
 
   }
 
