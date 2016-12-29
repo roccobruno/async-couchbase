@@ -1,6 +1,7 @@
 package org.asyncouchebase.bucket
 
 import com.couchbase.client.java.auth.ClassicAuthenticator
+import com.couchbase.client.java.error.DocumentAlreadyExistsException
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
@@ -257,6 +258,24 @@ class BucketSpec extends Testing {
       Thread.sleep(2000)
       val res = await(bucket.get[User](docId))
       res.isDefined shouldBe false
+    }
+
+    "insert a doc" in {
+      val docId: String = "u:test"
+      await(bucket.insert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+      val res = await(bucket.get[User](docId))
+      res.isDefined shouldBe true
+      await(bucket.delete[User](docId))
+    }
+
+    "throws an exception when trying to insert a doc with same key" in {
+      val docId: String = "u:test"
+      await(bucket.insert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+      intercept[DocumentAlreadyExistsException] {
+        await(bucket.insert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+      }
+      await(bucket.delete[User](docId))
+
     }
 
   }

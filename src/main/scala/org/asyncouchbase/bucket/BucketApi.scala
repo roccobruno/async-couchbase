@@ -3,6 +3,7 @@ package org.asyncouchbase.bucket
 import com.couchbase.client.core.logging.CouchbaseLoggerFactory
 import com.couchbase.client.java.document.JsonDocument.create
 import com.couchbase.client.java.document.json.JsonObject.fromJson
+import com.couchbase.client.java.error.DocumentAlreadyExistsException
 import com.couchbase.client.java.query._
 import com.couchbase.client.java.query.consistency.ScanConsistency
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
@@ -31,6 +32,21 @@ trait BucketApi {
       logger.warn(s"Error in $operation document with id= $key. Error message - ${ex.getMessage}")
       logger.debug(s"Error of type ${ex.getCause}")
       OpsResult(isSuccess = false, ex.getMessage)
+    }
+  }
+
+  def handlingDocExistException(key : String): PartialFunction[DocumentAlreadyExistsException, OpsResult] = {
+    case ex: DocumentAlreadyExistsException =>
+      logger.warn(s"Error in inserting document with id= $key. Error message - ${ex.getMessage}")
+      logger.debug(s"Error of type ${ex.getCause}")
+      OpsResult(isSuccess = false, ex.getMessage)
+  }
+
+  def insert[T](key: String, entity: T, expiry: Int = 0, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE)(implicit r: Writes[T]): Future[OpsResult] = {
+    val ent = fromJson(r.writes(entity).toString())
+    toFuture(asyncBucket.insert(create(key, expiry, ent), persistTo, replicateTo)) map {
+      _ =>
+        OpsResult(isSuccess = true)
     }
   }
 
