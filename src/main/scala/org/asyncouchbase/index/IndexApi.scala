@@ -9,6 +9,7 @@ import org.asyncouchbase.model.{CBIndex, OpsResult}
 import org.asyncouchbase.query.ExpressionImplicits._
 import org.asyncouchbase.query.SELECT
 import org.asyncouchbase.util.Converters.toFuture
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -90,6 +91,7 @@ trait IndexApi extends BucketApi {
 
   def dropAllIndexes(): Future[OpsResult] = {
 
+    Logger.info("dropping all indexes")
     def deleteIndexes(indexes: Seq[CBIndex]): Future[OpsResult] = {
 
       indexes.map { index =>
@@ -102,6 +104,8 @@ trait IndexApi extends BucketApi {
       indexes <- findIndexes()
       if(indexes.nonEmpty)
       res <- deleteIndexes(indexes)
+      if(indexes.isEmpty)
+      res <- Future.successful(OpsResult(true))
     } yield res
   }
 

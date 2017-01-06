@@ -19,14 +19,11 @@ script:
 after_success:
   - bash <(curl -s https://codecov.io/bash)
 
+sudo: required
+
+services:
+  - docker
+
 before_install:
-  - sudo wget -O/etc/apt/sources.list.d/couchbase.list http://packages.couchbase.com/ubuntu/couchbase-ubuntu1204.list
-  - sudo wget http://packages.couchbase.com/ubuntu/couchbase.key && sudo cat couchbase.key
-    | sudo apt-key add -
-  - sudo apt-get update
-  - sudo apt-get install libcouchbase2 libcouchbase-dev
-  - sudo wget http://packages.couchbase.com/releases/3.0.2/couchbase-server-enterprise_3.0.2-ubuntu12.04_amd64.deb
-  - sudo dpkg -i couchbase-server-enterprise_3.0.2-ubuntu12.04_amd64.deb
-  - sudo service couchbase-server restart
-  - /opt/couchbase/bin/couchbase-cli cluster-init -c 127.0.0.1:8091 --cluster-username=Administrator --cluster-password=password --cluster-ramsize=512
-    
+- sudo chmod +x start-setup-couchbase.sh
+- sudo ./start-setup-couchbase.sh

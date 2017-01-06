@@ -1,19 +1,23 @@
 package org.asyncouchebase.index
 
+import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.index.IndexApi
+import org.scalatest.Ignore
 import util.Testing
 
 
 
-
+@Ignore
 /*
   IT needs a Couchbase instance running in localhost:8091 with default bucket
  */
 class IndexApiSpec  extends Testing {
 
 
-  val cluster = CouchbaseCluster.create("localhost")
+  val cluster = CouchbaseCluster.create()
+  cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
+
   val bucket = new IndexApi {
     override def asyncBucket: AsyncBucket = cluster.openBucket("default").async()
   }
