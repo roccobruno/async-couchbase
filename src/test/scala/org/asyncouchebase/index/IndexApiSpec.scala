@@ -22,7 +22,7 @@ class IndexApiSpec  extends Testing {
 
 
   override protected def beforeAll(): Unit = {
-    await(bucket.dropAllIndexes())
+//    await(bucket.dropAllIndexes())
   }
 
 
