@@ -3,12 +3,10 @@ package org.asyncouchebase.index
 import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
 import org.asyncouchbase.index.IndexApi
-import org.scalatest.Ignore
 import util.Testing
 
 
 
-@Ignore
 /*
   IT needs a Couchbase instance running in localhost:8091 with default bucket
  */
@@ -27,30 +25,21 @@ class IndexApiSpec  extends Testing {
     await(bucket.dropAllIndexes())
   }
 
-  override protected def afterAll(): Unit = {
-    cluster.disconnect()
-  }
-
-  trait Setup {
-
-
-
-  }
 
   "A bucket with index " should {
-    "create a secondary index " in new Setup  {
+    "create a secondary index " in   {
       await(bucket.dropIndex("def_name"))
       val recs = await(bucket.createIndex(Seq("name")))
       recs.isSuccess shouldBe true
     }
 
-    "find created indexes" in new Setup {
+    "find created indexes" in  {
       await(bucket.createPrimaryIndex(deferBuild = false))
       val result = await(bucket.findIndexes())
       result.size shouldBe 2
     }
 
-    "build primary index" in new Setup {
+    "build primary index" in  {
       await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
 
       await(bucket.createPrimaryIndex(deferBuild = true))
@@ -63,7 +52,7 @@ class IndexApiSpec  extends Testing {
       }
     }
 
-    "build secondary index" in new Setup {
+    "build secondary index" in  {
 
       await(bucket.createIndex(Seq("email"), deferBuild = true))
       await(bucket.buildIndex(Seq("email")))
@@ -77,25 +66,25 @@ class IndexApiSpec  extends Testing {
       await(bucket.dropIndex("def_email"))
     }
 
-    "delete index" in new Setup {
+    "delete index" in  {
       val res = await(bucket.dropIndex("def_name"))
       res.isSuccess shouldBe true
     }
 
-    "create primary index" in new Setup {
+    "create primary index" in  {
       await(bucket.dropIndex(bucket.PRIMARY_INDEX_NAME))
 
       val res = await(bucket.createPrimaryIndex())
       res.isSuccess shouldBe true
     }
 
-    "fail when trying to create the same primary index twice" in new Setup {
+    "fail when trying to create the same primary index twice" in  {
       await(bucket.createPrimaryIndex())
       val res = await(bucket.createPrimaryIndex())
       res.isSuccess shouldBe false
     }
 
-    "fail when trying to create the same secondaty index twice" in new Setup {
+    "fail when trying to create the same secondaty index twice" in  {
      await(bucket.createIndex(Seq("name")))
       val res = await(bucket.createIndex(Seq("name")))
       res.isSuccess shouldBe false

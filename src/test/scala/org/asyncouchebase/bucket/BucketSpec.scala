@@ -47,10 +47,7 @@ class BucketSpec extends Testing {
     }
   }
 
-  trait Setup {
 
-
-  }
 
   override protected def beforeAll(): Unit = {
 
@@ -69,14 +66,10 @@ class BucketSpec extends Testing {
   val cluster = CouchbaseCluster.create()
   cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
 
-  override protected def afterAll(): Unit = {
-    bucket.asyncBucket.close()
-    cluster.disconnect()
-  }
 
 
   "a Bucket" should {
-    "return a document by key" in new Setup {
+    "return a document by key" in  {
 
       //prepopulate db
       await(bucket.upsert[User]("u:king_arthur", User("Arthur", "kingarthur@couchbase.com", Seq("test", "test2"))))
@@ -92,7 +85,7 @@ class BucketSpec extends Testing {
 
     }
 
-    "upsert a document" in new Setup {
+    "upsert a document" in  {
 
       val result = await(bucket.upsert[User]("u:rocco", User("rocco", "eocco@test.com", Seq())))
       result.isSuccess shouldBe true
@@ -107,7 +100,7 @@ class BucketSpec extends Testing {
       await(bucket.delete("u:rocco"))
     }
 
-    "return 2 documents in " in new Setup {
+    "return 2 documents in " in  {
 
       await(bucket.upsert[User]("u:rocco1", User("rocco", "eocco@test.com", Seq("test"))))
       await(bucket.get[User]("u:rocco1")).isDefined shouldBe true
@@ -128,7 +121,7 @@ class BucketSpec extends Testing {
       await(bucket.delete("u:rocco3"))
     }
 
-    "delete a doc by key" in new Setup {
+    "delete a doc by key" in  {
 
 
       await(bucket.upsert[User]("u:rocco23", User("rocco", "eocco@test.com", Seq("test"))))
@@ -144,7 +137,7 @@ class BucketSpec extends Testing {
 
     }
 
-    "read single value from document" in new Setup {
+    "read single value from document" in  {
       private val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
@@ -155,7 +148,7 @@ class BucketSpec extends Testing {
 
     }
 
-    "set single value to a document" in new Setup {
+    "set single value to a document" in  {
 
       private val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
@@ -171,7 +164,7 @@ class BucketSpec extends Testing {
 
     }
 
-    "set new key value pair to a document" in new Setup {
+    "set new key value pair to a document" in  {
       private val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
@@ -184,7 +177,7 @@ class BucketSpec extends Testing {
       await(bucket.delete[User](docId))
     }
 
-    "return None if value not present in document" in new Setup {
+    "return None if value not present in document" in  {
       private val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
@@ -195,7 +188,7 @@ class BucketSpec extends Testing {
 
     }
 
-    "query by dateTime" in new Setup {
+    "query by dateTime" in  {
 
       private val docId: String = "u:testdate"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
