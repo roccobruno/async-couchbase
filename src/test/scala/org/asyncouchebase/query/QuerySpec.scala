@@ -119,7 +119,7 @@ class QuerySpec extends Testing {
         withSecondOfMinute(22).
         withMillisOfSecond(201)
 
-      val query = SELECT( "name") FROM "default" WHERE ("name" === "teste").AND("name" === "teste2").AND("dob" BETWEEN (from AND date))
+      val query = SELECT( "name") FROM "default" WHERE ("name" === "teste" AND "name" === "teste2" AND ("dob" BETWEEN (from AND date)))
 
       query.toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z'))"
 
