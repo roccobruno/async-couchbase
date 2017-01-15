@@ -47,7 +47,10 @@ class BucketSpec extends Testing {
     }
   }
 
+  trait Setup {
 
+
+  }
 
   override protected def beforeAll(): Unit = {
 
@@ -66,6 +69,10 @@ class BucketSpec extends Testing {
   val cluster = CouchbaseCluster.create()
   cluster.authenticate(new ClassicAuthenticator().cluster("Administrator", "Administrator"))
 
+  override protected def afterAll(): Unit = {
+    bucket.asyncBucket.close()
+    cluster.disconnect()
+  }
 
 
   "a Bucket" should {
@@ -138,7 +145,7 @@ class BucketSpec extends Testing {
     }
 
     "read single value from document" in  {
-      private val docId: String = "u:test"
+       val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
       val value = await(bucket.getValue[String](docId, "name", classOf[String]))
@@ -150,7 +157,7 @@ class BucketSpec extends Testing {
 
     "set single value to a document" in  {
 
-      private val docId: String = "u:test"
+      val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
       val res = await(bucket.setValue[String](docId, "name", "rocco2"))
@@ -165,7 +172,7 @@ class BucketSpec extends Testing {
     }
 
     "set new key value pair to a document" in  {
-      private val docId: String = "u:test"
+       val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
       val res = await(bucket.setValue[String](docId, "surname", "bruno"))
@@ -178,7 +185,7 @@ class BucketSpec extends Testing {
     }
 
     "return None if value not present in document" in  {
-      private val docId: String = "u:test"
+       val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
       val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
@@ -190,7 +197,7 @@ class BucketSpec extends Testing {
 
     "query by dateTime" in  {
 
-      private val docId: String = "u:testdate"
+       val docId: String = "u:testdate"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
       await(bucket.upsert[User](docId + "2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
 
