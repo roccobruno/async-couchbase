@@ -34,7 +34,7 @@ class IndexApiSpec  extends Testing {
     }
 
     "find created indexes" in  {
-      await(bucket.createPrimaryIndex(deferBuild = false))
+      await(bucket.createPrimaryIndex())
       val result = await(bucket.findIndexes())
       result.size shouldBe 2
     }

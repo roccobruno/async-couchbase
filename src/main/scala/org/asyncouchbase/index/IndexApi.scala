@@ -39,7 +39,7 @@ trait IndexApi extends BucketApi {
     )
 
     val indName = indexName.dropRight(1)
-    val stat = Index.createIndex(indName).on(asyncBucket.name(), x(indName.replace(INDEX_NAME_PREFIX, "")))
+    val stat = Index.createIndex(indName).on(asyncBucket.name(), x(indName.replace(INDEX_NAME_PREFIX, ""))).using(IndexType.GSI)
 
     def valuateDeferBuild = deferBuild match  {
       case false => stat
@@ -57,13 +57,13 @@ trait IndexApi extends BucketApi {
     )
 
     val indName = indexName.dropRight(1)
-    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(indName)
+    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(indName).using(IndexType.GSI)
     executeOp(asyncBucket.query(simple(stat)))
   }
 
 
   def buildPrimaryIndex(): Future[OpsResult] = {
-    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(PRIMARY_INDEX_NAME)
+    val stat = Index.buildIndex().on(asyncBucket.name()).indexes(PRIMARY_INDEX_NAME).using(IndexType.GSI)
     executeOp(asyncBucket.query(simple(stat)))
   }
 
@@ -78,7 +78,7 @@ trait IndexApi extends BucketApi {
     executeOp(asyncBucket.query(query))
   }
 
-  def createPrimaryIndex(deferBuild: Boolean = true): Future[OpsResult] = {
+  def createPrimaryIndex(deferBuild: Boolean = false): Future[OpsResult] = {
     val query = Index.createPrimaryIndex().on(asyncBucket.name()).using(IndexType.GSI)
 
     def valuateDeferBuild = deferBuild match  {

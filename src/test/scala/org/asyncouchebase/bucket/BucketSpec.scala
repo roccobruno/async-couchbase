@@ -116,7 +116,7 @@ class BucketSpec extends Testing {
       await(bucket.upsert[User]("u:rocco3", User("rocco", "eocco@test.com", Seq("cacca"))))
       await(bucket.get[User]("u:rocco3")).isDefined shouldBe true
 
-      Thread.sleep(5000)
+      Thread.sleep(10000)
 
       val query = SELECT("*") FROM "default" WHERE ("test" IN "interests")
       val results = await(bucket.find[User](query))
@@ -196,7 +196,7 @@ class BucketSpec extends Testing {
     }
 
     "query by dateTime" in  {
-
+      await(bucket.buildPrimaryIndex())
        val docId: String = "u:testdate"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(20))))
       await(bucket.upsert[User](docId + "2", User("rocco2", "eocco@test.com", Seq("test"), dob = DateTime.now().minusYears(10))))
