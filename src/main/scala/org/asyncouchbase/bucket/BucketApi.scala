@@ -11,7 +11,7 @@ import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.SimpleQuery
 import org.asyncouchbase.util.Converters._
 import play.api.libs.iteratee.Iteratee
-import play.api.libs.json.Json.parse
+import play.api.libs.json.Json._
 import play.api.libs.json._
 import rx.lang.scala.JavaConversions.toScalaObservable
 
@@ -126,6 +126,15 @@ trait BucketApi {
     res map {
       case java.lang.Boolean.TRUE => true
       case _ => false
+    }
+  }
+
+
+  def getAndTouch[T](key: String, expiry: Int)(implicit r: Reads[T]): Future[Option[T]] = {
+    toFuture(asyncBucket.getAndTouch(key, expiry)) map {
+      doc => parse(doc.content().toString).asOpt[T]
+    } recover {
+      case _: Throwable => None //TODO
     }
   }
 }

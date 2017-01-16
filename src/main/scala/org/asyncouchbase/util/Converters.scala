@@ -3,11 +3,10 @@ package org.asyncouchbase.util
 import play.api.libs.iteratee.Concurrent.Channel
 import play.api.libs.iteratee._
 import rx.lang.scala.JavaConversions._
-import rx.lang.scala.{Observable, Observer, Subscription}
+import rx.lang.scala.{Observable, Observer}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
 
 package object Converters {
 
@@ -31,33 +30,6 @@ package object Converters {
 
     override def onError(e: Throwable): Unit = channel.end(e)
   }
-
-    /*
-     * Enumerator to Observable
-     */
-  implicit def enumerator2Observable[T](enum: Enumerator[T]): Observable[T] = {
-    // creating the Observable that we return
-    Observable({ observer: Observer[T] =>
-      // keeping a way to unsubscribe from the observable
-      var cancelled = false
-
-      // enumerator input is tested with this predicate
-      // once cancelled is set to true, the enumerator will stop producing data
-      val cancellableEnum = enum through Enumeratee.breakE[T](_ => cancelled)
-
-      // applying iteratee on producer, passing data to the observable
-      cancellableEnum (
-        Iteratee.foreach(observer.onNext(_))
-      ).onComplete { // passing completion or error to the observable
-        case Success(_) => observer.onCompleted()
-        case Failure(e) => observer.onError(e)
-      }
-
-      // unsubscription will change the var to stop the enumerator above via the breakE function
-      new Subscription { override def unsubscribe() = { cancelled = true } }
-    })
-  }
-
 
   /*
    Observable to Future

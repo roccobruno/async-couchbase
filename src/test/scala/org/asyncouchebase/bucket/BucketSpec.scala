@@ -254,10 +254,23 @@ class BucketSpec extends Testing {
 
     "expiry a doc" in {
       val docId: String = "u:test"
-      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test")), 1))
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test")), expiry =  1))
       Thread.sleep(2000)
       val res = await(bucket.get[User](docId))
       res.isDefined shouldBe false
+    }
+
+    "get and reset expiry time" in {
+      val docId: String = "u:test33"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test")), expiry = 2))
+      Thread.sleep(1000)
+
+      val readDocument = await(bucket.getAndTouch[User](docId, expiry = 5))
+      readDocument.isDefined shouldBe true
+      Thread.sleep(2000)
+
+      val res = await(bucket.get[User](docId))
+      res.isDefined shouldBe true
     }
 
     "insert a doc" in {
