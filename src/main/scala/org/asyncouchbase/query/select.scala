@@ -187,13 +187,13 @@ trait Expression[T] extends BinaryExpression {
 
   def gte(value: T) = {
     this.value = value
-    this.operator = "<="
+    this.operator = ">="
     this
   }
 
   def lte(value: T) = {
     this.value = value
-    this.operator = ">="
+    this.operator = "<="
     this
   }
 

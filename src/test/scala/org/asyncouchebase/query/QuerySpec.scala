@@ -166,6 +166,30 @@ class QuerySpec extends Testing {
 
     }
 
+    "create the right N1SQL statement with < operator expression with Number field type" in {
+
+      val query = SELECT("*") FROM "default" WHERE ("dob" lt 3 )
+
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob < 3"
+
+    }
+
+    "create the right N1SQL statement with <= operator expression with Number field type" in {
+
+      val query = SELECT("*") FROM "default" WHERE ("dob" lte 3 )
+
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob <= 3"
+
+    }
+
+    "create the right N1SQL statement with >= operator expression with Number field type" in {
+
+      val query = SELECT("*") FROM "default" WHERE ("dob" gte 3 )
+
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob >= 3"
+
+    }
+
     "create the right N1SQL statement with BETWEEN operator expression with Int field type" in {
 
       val query = SELECT("*") FROM "default" WHERE ("count" BETWEEN (0 AND 2))
@@ -190,7 +214,6 @@ class QuerySpec extends Testing {
 
     }
 
-    //
     "create the right N1SQL statement with Array Expression and RANGE expression" in {
 
       val query = SELECT("*") FROM "default" WHERE ((("docType" === "Job") AND ( "journey.startsAt.time" BETWEEN (1700 AND 1800))) AND (ANY("line") IN ("journey.meansOfTransportation.tubeLines") SATISFIES ("line.id" IN "['piccadilly', 'northern']")))
