@@ -6,6 +6,7 @@ import com.couchbase.client.java.document.json.JsonObject.fromJson
 import com.couchbase.client.java.error.DocumentAlreadyExistsException
 import com.couchbase.client.java.query._
 import com.couchbase.client.java.query.consistency.ScanConsistency
+import com.couchbase.client.java.subdoc.AsyncMutateInBuilder
 import com.couchbase.client.java.{AsyncBucket, PersistTo, ReplicateTo}
 import org.asyncouchbase.model.OpsResult
 import org.asyncouchbase.query.SimpleQuery
@@ -111,6 +112,23 @@ trait BucketApi {
     toFuture(asyncBucket.mapAdd(key, fieldName, fieldValue)) map {
       _ => OpsResult(isSuccess = true)
     } recover errorHandling("setting value", key)
+  }
+
+  def setValues(key: String, values: Map[String, AnyRef]): Future[OpsResult] = {
+
+    val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
+
+    def addToBuilder(valueToAdd :(String,Any)):Unit = {
+      builder.upsert(valueToAdd._1,valueToAdd._2,false)
+    }
+
+   values.foreach(addToBuilder)
+
+    toFuture(builder.execute()) map {
+      _ => OpsResult(isSuccess = true)
+    } recover errorHandling("setting values", key)
+
+
   }
 
 

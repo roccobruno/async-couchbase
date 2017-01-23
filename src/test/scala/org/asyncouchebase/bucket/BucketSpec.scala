@@ -184,6 +184,26 @@ class BucketSpec extends Testing {
       await(bucket.delete[User](docId))
     }
 
+    "set new multiple key value pairs to a document" in  {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val values = Map("surname" -> "bruno", "name" -> "rocco22")
+
+      val res = await(bucket.setValues(docId, values))
+      res.isSuccess shouldBe true
+
+      val user = await(bucket.get[User](docId))
+      user.isDefined shouldBe true
+      user.get.name shouldBe "rocco22"
+
+      val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
+      value.get shouldBe "bruno"
+
+      await(bucket.delete[User](docId))
+    }
+
+
     "return None if value not present in document" in  {
        val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
