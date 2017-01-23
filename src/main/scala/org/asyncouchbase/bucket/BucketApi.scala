@@ -114,7 +114,7 @@ trait BucketApi {
     } recover errorHandling("setting value", key)
   }
 
-  def setValues(key: String, values: Map[String, AnyRef]): Future[OpsResult] = {
+  def setValues(key: String, values: Map[String, Any]): Future[OpsResult] = {
 
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
 
