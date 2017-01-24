@@ -3,6 +3,7 @@ package org.asyncouchebase.bucket
 import com.couchbase.client.java.auth.ClassicAuthenticator
 import com.couchbase.client.java.error.DocumentAlreadyExistsException
 import com.couchbase.client.java.{AsyncBucket, CouchbaseCluster}
+import org.asyncouchbase.bucket.Path
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.query.ExpressionImplicits._
@@ -184,11 +185,51 @@ class BucketSpec extends Testing {
       await(bucket.delete[User](docId))
     }
 
-    "set new multiple key value pairs to a document" in  {
+    "set new multiple key value pairs to a document with path" in  {
       val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
-      val values = Map("surname" -> "bruno", "name" -> "rocco22")
+      val values:Map[Path,Any] = Map(Path("surname") -> "bruno", Path("address.line1") -> "Flat 6 Osler Court", Path("name") -> "rocco22")
+
+      val res = await(bucket.setValues(docId, values, createParent = true))
+      res.isSuccess shouldBe true
+
+      val user = await(bucket.get[User](docId))
+      user.isDefined shouldBe true
+      user.get.name shouldBe "rocco22"
+
+      val value = await(bucket.getValue[String](docId, "surname", classOf[String]))
+      value.get shouldBe "bruno"
+
+      val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
+      valueAddress.get shouldBe "Flat 6 Osler Court"
+
+      await(bucket.delete[User](docId))
+    }
+
+    "set new multiple key value pairs to a document with path without creating parent" in  {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val values:Map[Path,Any] = Map( Path("address.line1") -> "Flat 6 Osler Court")
+
+      val res = await(bucket.setValues(docId, values))
+      res.isSuccess shouldBe false
+      res.msg shouldBe ("Multiple mutation could not be applied. First problematic failure at 0 with status SUBDOC_PATH_NOT_FOUND")
+
+     val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
+      valueAddress.isDefined shouldBe false
+
+      await(bucket.delete[User](docId))
+    }
+
+
+
+    "set new multiple key value pairs to a document " in  {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val values:Map[Path,Any] = Map(Path("surname") -> "bruno", Path("name") -> "rocco22")
 
       val res = await(bucket.setValues(docId, values))
       res.isSuccess shouldBe true
@@ -201,6 +242,15 @@ class BucketSpec extends Testing {
       value.get shouldBe "bruno"
 
       await(bucket.delete[User](docId))
+    }
+
+
+    "set new multiple key value pairs to a document, invalid path" in  {
+      intercept[IllegalArgumentException] {
+        val values:Map[Path,Any] = Map(Path("surname.") -> "bruno", Path("..name") -> "rocco22")
+        await(bucket.setValues("test", values))
+      }
+
     }
 
 

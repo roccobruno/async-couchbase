@@ -20,6 +20,17 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.reflect.runtime.universe._
 
+
+case class Path(path: String) {
+
+  def validPath = {
+    val points = path.count( _ == '.')
+    !path.contains('.') || path.split('.').size == points + 1
+  }
+  require(validPath,"the supplied path is invalid")
+}
+
+
 trait BucketApi {
  val logger =  CouchbaseLoggerFactory.getInstance(classOf[BucketApi])
 
@@ -114,12 +125,12 @@ trait BucketApi {
     } recover errorHandling("setting value", key)
   }
 
-  def setValues(key: String, values: Map[String, Any]): Future[OpsResult] = {
+  def setValues(key: String, values: Map[Path, Any], createParent: Boolean = false): Future[OpsResult] = {
 
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
 
-    def addToBuilder(valueToAdd :(String,Any)):Unit = {
-      builder.upsert(valueToAdd._1,valueToAdd._2,false)
+    def addToBuilder(valueToAdd :(Path,Any)):Unit = {
+      builder.upsert(valueToAdd._1.path,valueToAdd._2,createParent)
     }
 
    values.foreach(addToBuilder)
