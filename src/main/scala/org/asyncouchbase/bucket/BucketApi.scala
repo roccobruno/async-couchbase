@@ -126,27 +126,20 @@ trait BucketApi {
   }
 
   def setValuesOnExistingDoc(key: String, values: Map[Path, Any], createParent: Boolean = false): Future[OpsResult] = {
-
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
-
-    def addToBuilder(valueToAdd :(Path,Any)):Unit = {
-      builder.insert(valueToAdd._1.path,valueToAdd._2,createParent)
-    }
-
-   values.foreach(addToBuilder)
-
-    toFuture(builder.execute()) map {
-      _ => OpsResult(isSuccess = true)
-    } recover errorHandling("setting values", key)
-
+    setValuesWithdef[Any](key, values, createParent, builder.insert, builder)
   }
 
   def setValues(key: String, values: Map[Path, Any], createParent: Boolean = false): Future[OpsResult] = {
-
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
+    setValuesWithdef[Any](key, values, createParent, builder.upsert, builder)
+  }
 
-    def addToBuilder(valueToAdd :(Path,Any)):Unit = {
-      builder.upsert(valueToAdd._1.path,valueToAdd._2,createParent)
+  private def setValuesWithdef[T](key: String, values: Map[Path, T], createParent: Boolean = false,
+                               f: (String,T,Boolean) => AsyncMutateInBuilder , builder: AsyncMutateInBuilder): Future[OpsResult] = {
+
+    def addToBuilder(valueToAdd :(Path,T)):Unit = {
+      f(valueToAdd._1.path,valueToAdd._2,createParent)
     }
 
     values.foreach(addToBuilder)
@@ -154,7 +147,6 @@ trait BucketApi {
     toFuture(builder.execute()) map {
       _ => OpsResult(isSuccess = true)
     } recover errorHandling("setting values", key)
-
   }
 
 
