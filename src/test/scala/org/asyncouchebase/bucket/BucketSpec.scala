@@ -207,17 +207,45 @@ class BucketSpec extends Testing {
       await(bucket.delete[User](docId))
     }
 
+    "set new multiple key value pairs to an existing document with path without creating parent" in  {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
+
+      val values:Map[Path,Any] = Map( Path("address.line1") -> "Flat 6 Osler Court")
+
+      val res = await(bucket.setValuesOnExistingDoc(docId, values))
+      res.isSuccess shouldBe false
+      res.msg shouldBe ("Multiple mutation could not be applied. First problematic failure at 0 with status SUBDOC_PATH_NOT_FOUND")
+
+     val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
+      valueAddress.isDefined shouldBe false
+
+      await(bucket.delete[User](docId))
+    }
+
     "set new multiple key value pairs to a document with path without creating parent" in  {
       val docId: String = "u:test"
       await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("test"))))
 
       val values:Map[Path,Any] = Map( Path("address.line1") -> "Flat 6 Osler Court")
 
-      val res = await(bucket.setValues(docId, values))
-      res.isSuccess shouldBe false
-      res.msg shouldBe ("Multiple mutation could not be applied. First problematic failure at 0 with status SUBDOC_PATH_NOT_FOUND")
+      val res = await(bucket.setValuesOnExistingDoc(docId, values, createParent = true))
+      res.isSuccess shouldBe true
 
-     val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
+      val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
+      valueAddress.isDefined shouldBe true
+
+      await(bucket.delete[User](docId))
+    }
+
+    "set new multiple key value pairs to a not existing document " in  {
+      val docId: String = "u:test"
+      val values:Map[Path,Any] = Map( Path("address.line1") -> "Flat 6 Osler Court")
+
+      val res = await(bucket.setValuesOnExistingDoc(docId, values, createParent = true))
+      res.isSuccess shouldBe false
+
+      val valueAddress = await(bucket.getValue[String](docId, "address.line1", classOf[String]))
       valueAddress.isDefined shouldBe false
 
       await(bucket.delete[User](docId))
@@ -248,7 +276,7 @@ class BucketSpec extends Testing {
     "set new multiple key value pairs to a document, invalid path" in  {
       intercept[IllegalArgumentException] {
         val values:Map[Path,Any] = Map(Path("surname.") -> "bruno", Path("..name") -> "rocco22")
-        await(bucket.setValues("test", values))
+        await(bucket.setValuesOnExistingDoc("test", values))
       }
 
     }
