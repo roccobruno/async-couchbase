@@ -125,18 +125,20 @@ trait BucketApi {
     } recover errorHandling("setting value", key)
   }
 
-  def setValuesOnExistingDoc(key: String, values: Map[Path, Any], createParent: Boolean = false): Future[OpsResult] = {
+  def setValuesOnExistingDoc(key: String, values: Map[Path, Any], createParent: Boolean = false, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
-    setValuesWithdef[Any](key, values, createParent, builder.insert, builder)
+    setValuesWithDef[Any](key, values, createParent, builder.insert, builder, persistTo, replicateTo)
   }
 
-  def setValues(key: String, values: Map[Path, Any], createParent: Boolean = false): Future[OpsResult] = {
+  def setValues(key: String, values: Map[Path, Any], createParent: Boolean = false, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
-    setValuesWithdef[Any](key, values, createParent, builder.upsert, builder)
+    setValuesWithDef[Any](key, values, createParent, builder.upsert, builder, persistTo, replicateTo)
   }
 
-  private def setValuesWithdef[T](key: String, values: Map[Path, T], createParent: Boolean = false,
-                               f: (String,T,Boolean) => AsyncMutateInBuilder , builder: AsyncMutateInBuilder): Future[OpsResult] = {
+  private def setValuesWithDef[T](key: String, values: Map[Path, T], createParent: Boolean = false,
+                               f: (String,T,Boolean) => AsyncMutateInBuilder , builder: AsyncMutateInBuilder, persistTo: PersistTo , replicateTo: ReplicateTo ): Future[OpsResult] = {
+
+    builder.withDurability(persistTo, replicateTo)
 
     def addToBuilder(valueToAdd :(Path,T)):Unit = {
       f(valueToAdd._1.path,valueToAdd._2,createParent)
