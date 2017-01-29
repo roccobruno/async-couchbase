@@ -229,6 +229,14 @@ class QuerySpec extends Testing {
       query.toString shouldBe "SELECT meta().id FROM tube WHERE ANY line IN lineStatuses SATISFIES line.disruption IS NOT NULL END"
     }
 
+
+    "create the right right N1SQL statement with count  expression" in {
+
+      val query  = COUNT() FROM "tube" WHERE ("name" === "test")
+
+      query.toString shouldBe "SELECT count() as count FROM tube WHERE name = 'test'"
+
+    }
   }
 
 

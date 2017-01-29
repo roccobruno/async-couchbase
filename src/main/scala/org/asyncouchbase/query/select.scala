@@ -274,6 +274,16 @@ object SELECT extends AbstractQuery {
   override var selector: String = "*"
 }
 
+object COUNT extends AbstractQuery {
+
+  def apply() = {
+
+    new SimpleQuery(ss = this.selector)
+  }
+
+  override var selector: String = "count() as count"
+}
+
 
 class SimpleQuery(validationOn: Boolean = true, ss: String = "*") extends AbstractQuery {
 
