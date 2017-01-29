@@ -7,7 +7,7 @@ import org.asyncouchbase.bucket.Path
 import org.asyncouchbase.example.User
 import org.asyncouchbase.index.IndexApi
 import org.asyncouchbase.query.ExpressionImplicits._
-import org.asyncouchbase.query.SELECT
+import org.asyncouchbase.query.{COUNT, SELECT}
 import org.joda.time.DateTime
 import play.api.libs.json.Json
 import util.Testing
@@ -44,7 +44,7 @@ class BucketSpec extends Testing {
 
 
     bucket.find[ID](query) map {
-      records => println(s"$records"); deleteAll(records)
+      records => deleteAll(records)
     }
   }
 
@@ -387,6 +387,18 @@ class BucketSpec extends Testing {
       }
       await(bucket.delete[User](docId))
 
+    }
+
+    "count record by query" in {
+      await(bucket.upsert[User]("u:test", User("rocco", "eocco@test.com", Seq("tennis"))))
+      await(bucket.upsert[User]("u:test2", User("rocco", "eocco@test.com", Seq("tennis"))))
+
+      val query = COUNT() FROM "default"  WHERE ("tennis" IN "interests")
+      val res = await(bucket.count(query))
+
+      res.count shouldBe 2
+      await(bucket.delete[User]("u:test"))
+      await(bucket.delete[User]("u:test2"))
     }
 
   }

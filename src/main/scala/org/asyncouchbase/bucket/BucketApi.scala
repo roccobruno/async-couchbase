@@ -21,6 +21,11 @@ import scala.concurrent.Future
 import scala.reflect.runtime.universe._
 
 
+case class Count(count: Int)
+object  Count {
+  implicit val format = Json.format[Count]
+}
+
 case class Path(path: String) {
 
   def validPath = {
@@ -74,6 +79,17 @@ trait BucketApi {
     toFuture(asyncBucket.remove(key, persistTo, replicateTo)) map {
       _ => OpsResult(isSuccess = true)
     } recover errorHandling("deleting", key)
+  }
+
+  def count(query: SimpleQuery, consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS) : Future[Count] = {
+    find[Count](query, consistency) map {
+      case head:: tail => head
+    } recover {
+      case ex: Throwable =>
+        logger.error(s"ERROR IN COUNT method query ${query.buildQuery.n1ql()} - err ${ex.getMessage}")
+        Count(0)
+
+    }
   }
 
   def find[T: TypeTag](query: SimpleQuery, consistency: ScanConsistency = ScanConsistency.STATEMENT_PLUS)(implicit r: Reads[T], validateQuery: Boolean): Future[List[T]] = {

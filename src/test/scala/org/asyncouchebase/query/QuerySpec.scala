@@ -234,7 +234,7 @@ class QuerySpec extends Testing {
 
       val query  = COUNT() FROM "tube" WHERE ("name" === "test")
 
-      query.toString shouldBe "SELECT count() as count FROM tube WHERE name = 'test'"
+      query.toString shouldBe "SELECT count(*) as count FROM tube WHERE name = 'test'"
 
     }
   }

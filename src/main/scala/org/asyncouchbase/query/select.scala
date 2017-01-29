@@ -281,7 +281,7 @@ object COUNT extends AbstractQuery {
     new SimpleQuery(ss = this.selector)
   }
 
-  override var selector: String = "count() as count"
+  override var selector: String = "count(*) as count"
 }
 
 
