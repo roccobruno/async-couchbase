@@ -24,8 +24,8 @@ private object AppDependencies {
 
   val compile = Seq(
     "com.typesafe.play" %% "play" % PlayVersion.current % "provided",
-    "com.couchbase.client" % "java-client" % "2.3.5",
-    "io.reactivex" %% "rxscala" % "0.26.4"
+    "com.couchbase.client" % "java-client" % "2.4.1",
+    "io.reactivex" %% "rxscala" % "0.26.5"
   )
 
   val testScope: String = "test"
