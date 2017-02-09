@@ -79,7 +79,7 @@ class QuerySpec extends Testing {
     "create the right N1SQL statement with 'BETWEEN' operator expression" in {
 
       val from: DateTime = DateTime.now().withYear(2000).
-        withDayOfMonth(30).
+        withDayOfMonth(20).
         withMonthOfYear(1).
         withHourOfDay(22).
         withMinuteOfHour(22).
@@ -87,7 +87,7 @@ class QuerySpec extends Testing {
         withMillisOfSecond(200)
 
       val date: DateTime = DateTime.now().withYear(2001).
-        withDayOfMonth(31).
+        withDayOfMonth(21).
         withMonthOfYear(1).
         withHourOfDay(22).
         withMinuteOfHour(22).
@@ -96,7 +96,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE  ("dob" BETWEEN (from AND date))
 
-      query.toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z')"
+      query.toString shouldBe "SELECT name FROM default WHERE dob BETWEEN STR_TO_MILLIS('2000-01-20T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-21T22:22:22.201Z')"
 
     }
 
@@ -104,7 +104,7 @@ class QuerySpec extends Testing {
     "create the right N1SQL statement with 'BETWEEN' and 'AND operator expressions" in {
 
       val from: DateTime = DateTime.now().withYear(2000).
-        withDayOfMonth(30).
+        withDayOfMonth(20).
         withMonthOfYear(1).
         withHourOfDay(22).
         withMinuteOfHour(22).
@@ -112,7 +112,7 @@ class QuerySpec extends Testing {
         withMillisOfSecond(200)
 
       val date: DateTime = DateTime.now().withYear(2001).
-        withDayOfMonth(31).
+        withDayOfMonth(21).
         withMonthOfYear(1).
         withHourOfDay(22).
         withMinuteOfHour(22).
@@ -121,7 +121,7 @@ class QuerySpec extends Testing {
 
       val query = SELECT( "name") FROM "default" WHERE ("name" === "teste" AND "name" === "teste2" AND ("dob" BETWEEN (from AND date)))
 
-      query.toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-30T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-31T22:22:22.201Z'))"
+      query.toString shouldBe "SELECT name FROM default WHERE ((name = 'teste' AND name = 'teste2') AND dob BETWEEN STR_TO_MILLIS('2000-01-20T22:22:22.200Z') AND STR_TO_MILLIS('2001-01-21T22:22:22.201Z'))"
 
     }
 
@@ -146,7 +146,7 @@ class QuerySpec extends Testing {
 
     "create the right N1SQL statement with > operator expression with field of type Date" in {
       val date: DateTime = DateTime.now().withYear(2000).
-        withDayOfMonth(30).
+        withDayOfMonth(20).
         withMonthOfYear(1).
         withHourOfDay(22).
         withMinuteOfHour(22).
@@ -154,7 +154,7 @@ class QuerySpec extends Testing {
         withMillisOfSecond(200)
       val query = SELECT("*") FROM "default" WHERE ("dob" gt date)
 
-      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > STR_TO_MILLIS('2000-01-30T22:22:22.200Z')"
+      query.toString shouldBe "SELECT default.*,meta().id FROM default WHERE dob > STR_TO_MILLIS('2000-01-20T22:22:22.200Z')"
 
     }
 

@@ -141,6 +141,12 @@ trait BucketApi {
     } recover errorHandling("setting value", key)
   }
 
+  def removeValue(key: String, fieldName: String): Future[OpsResult] = {
+    toFuture(asyncBucket.mapRemove(key, fieldName)) map {
+      _ => OpsResult(isSuccess = true)
+    } recover errorHandling("setting value", key)
+  }
+
   def setValuesOnExistingDoc(key: String, values: Map[Path, Any], createParent: Boolean = false, persistTo: PersistTo = PersistTo.ONE, replicateTo: ReplicateTo = ReplicateTo.NONE): Future[OpsResult] = {
     val builder: AsyncMutateInBuilder = asyncBucket.mutateIn(key)
     setValuesWithDef[Any](key, values, createParent, builder.insert, builder, persistTo, replicateTo)

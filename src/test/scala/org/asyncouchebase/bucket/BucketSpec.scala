@@ -401,6 +401,21 @@ class BucketSpec extends Testing {
       await(bucket.delete[User]("u:test2"))
     }
 
+    "remove a single element from a doc" in {
+      val docId: String = "u:test"
+      await(bucket.upsert[User](docId, User("rocco", "eocco@test.com", Seq("tennis"))))
+
+      val res = await(bucket.removeValue(docId, "email"))
+      res.isSuccess shouldBe true
+
+      val value = await(bucket.getValue[String](docId, "email", classOf[String]))
+      value.isEmpty shouldBe true
+
+      await(bucket.delete[User](docId))
+
+
+    }
+
   }
 
 
